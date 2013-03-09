@@ -1,0 +1,255 @@
+[
+  {
+    "season": "Summer 2012",
+    "code": "3B",
+	"type": "Academic",
+    "courses": [
+      {
+        "code": "CS 488",
+        "name": "Graphics",
+        "description": "http://www.ucalendar.uwaterloo.ca/1213/COURSE/course-CS.html#CS488", 
+        "longDescription": "http://www.cs.uwaterloo.ca/current/courses/course_descriptions/cDescr/CS488",
+        "homepage": "http://www.student.cs.uwaterloo.ca/~cs488/"
+      },
+	  {
+        "code": "CS 486",
+        "name": "Artificial Intelligence",
+		"description": "http://www.ucalendar.uwaterloo.ca/1213/COURSE/course-CS.html#CS486",
+        "longDescription": "http://www.cs.uwaterloo.ca/current/courses/course_descriptions/cDescr/CS486",
+        "homepage": "http://www.student.cs.uwaterloo.ca/~cs486/"
+      },
+	  {
+        "code": "HRM 200",
+        "name": "Basic Human Resources Management",
+		"description": "http://www.ucalendar.uwaterloo.ca/1213/COURSE/course-HRM.html#HRM200"
+      },
+	  {
+        "code": "BUS 111W",
+        "name": "Intro to Business Organization (WLU)",
+		"description": "http://www.wlu.ca/calendars/course.php?cal=1&c=29009&d=1079&s=503&y=53"
+      }
+    ]
+  },
+  {
+    "season": "Winter 2012",
+    "code": "3A",
+	"type": "Work",
+    "courses": [
+      {
+        "code": "MSCI 211",
+        "name": "Organizational Behaviour",
+		"description": "http://www.ucalendar.uwaterloo.ca/1213/COURSE/course-MSCI.html#MSCI211"
+      },
+	  {
+        "code": "PD 6",
+        "name": "Problem Solving",
+		"description": "http://www.ucalendar.uwaterloo.ca/1213/COURSE/course-PD.html#PD6"
+      }
+	]
+  },
+  {
+    "season": "Fall 2011",
+    "code": "3A",
+	"type": "Academic",
+    "courses": [
+      {
+        "code": "CO 250",
+        "name": "Intro to Optimization",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-CO.html#CO250",
+        "homepage": "http://www.math.uwaterloo.ca/~jochen/co250-syll.html"
+      },
+	  {
+        "code": "CS 341",
+        "name": "Algorithms",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-CS.html#CS341",
+        "homepage": "http://www.student.cs.uwaterloo.ca/~cs341/"
+      },
+	  {
+        "code": "CS 350",
+        "name": "Operating Systems",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-CS.html#CS350",
+        "homepage": "http://www.student.cs.uwaterloo.ca/~cs350"
+      },
+	  {
+        "code": "CS 370",
+        "name": "Numerical Computation",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-CS.html#CS370",
+        "homepage": "http://www.student.cs.uwaterloo.ca/~cs370/"
+      },
+	  {
+        "code": "STAT 231",
+        "name": "Statistics",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-STAT.html#STAT231"
+      }
+    ]
+  },
+  {
+    "season": "Spring 2011",
+    "code": "3A",
+	"type": "Work",
+    "courses": [
+      {
+        "code": "PD 5",
+        "name": "Project Management",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-PD.html#PD5"
+      }
+	]
+  },
+  {
+    "season": "Winter 2011",
+    "code": "2B",
+	"type": "Academic",
+    "courses": [
+      {
+        "code": "CS 240",
+        "name": "Data Structures and Data Management",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-CS.html#CS240",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs240"
+      },
+	  {
+        "code": "CS 246",
+        "name": "Object-Oriented Software Development",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-CS.html#CS246",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs246"
+      },
+	  {
+        "code": "ENGL 119",
+        "name": "Communications in Mathematics & Computer Science",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-ENGL.html#ENGL119"
+      },
+	  {
+        "code": "GER 101",
+        "name": "Elementary German I",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-GER.html#GER101"
+      },
+	  {
+        "code": "MATH 239",
+        "name": "Introduction to Combinatorics",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-MATH.html#MATH239"
+      }
+	]
+  },
+  {
+    "season": "Fall 2010",
+    "code": "2B",
+	"type": "Work",
+    "courses": [
+	  {
+        "code": "ENGL 210F",
+        "name": "Genres of Business Communication",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-ENGL.html#ENGL210F"
+      },
+      {
+        "code": "PD 2",
+        "name": "Critical Reflection and Report Writing",
+		"description": "http://www.ucalendar.uwaterloo.ca/1112/COURSE/course-PD.html#PD2"
+      }
+	]
+  },
+  {
+    "season": "Spring 2010",
+    "code": "2A",
+	"type": "Academic",
+    "courses": [
+      {
+        "code": "CS 241",
+        "name": "Foundations of Sequential Programs",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-CS.html#CS241",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs241"
+      },
+	  {
+        "code": "CS 245",
+        "name": "Logic and Computation",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-CS.html#CS245",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs245"
+      },
+	  {
+        "code": "CS 251",
+        "name": "Computer Organization and Design",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-CS.html#CS251",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs251"
+      },
+	  {
+        "code": "MUSIC 100",
+        "name": "Understanding Music",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-MUSIC.html#music100"
+      },
+	  {
+        "code": "PD 1",
+        "name": "Co-op Fundamentals",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-PD.html#PD1"
+      },
+	  {
+        "code": "STAT 230",
+        "name": "Probability",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-STAT.html#STAT230"
+      }
+	]
+  },
+  {
+    "season": "Winter 2010",
+    "code": "1B",
+	"type": "Academic",
+    "courses": [
+      {
+        "code": "CS 136",
+        "name": "Elementary Algorithm Design and Data Abstraction",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-CS.html#CS136",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs136"
+      },
+	  {
+        "code": "ECON 101",
+        "name": "Introduction to Microeconomics",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-ECON.html#ECON101"
+      },
+	  {
+        "code": "MATH 136",
+        "name": "Linear Algebra 1 for Honours Mathematics",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-MATH.html#MATH136"
+      },
+	  {
+        "code": "MATH 138",
+        "name": "Calculus 2 For Honours Mathematics",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-MATH.html#MATH138"
+      },
+	  {
+        "code": "SCI 238",
+        "name": "Introductory Astronomy",
+		"description": "http://www.ucalendar.uwaterloo.ca/1011/COURSE/course-SCI.html#SCI238"
+      }
+	]
+  },
+  {
+    "season": "Fall 2009",
+    "code": "1A",
+	"type": "Academic",
+    "courses": [
+      {
+        "code": "CS 135",
+        "name": "Designing Functional Programs",
+		"description": "http://www.ucalendar.uwaterloo.ca/0910/COURSE/course-CS.html#CS135",
+		"homepage": "http://www.student.cs.uwaterloo.ca/~cs135"
+      },
+	  {
+        "code": "MATH 135",
+        "name": "Algebra for Honours Mathematics",
+		"description": "http://www.ucalendar.uwaterloo.ca/0910/COURSE/course-MATH.html#MATH135"
+      },
+	  {
+        "code": "MATH 137",
+        "name": "Calculus 1 for Honours Mathematics",
+		"description": "http://www.ucalendar.uwaterloo.ca/0910/COURSE/course-MATH.html#MATH137"
+      },
+	  {
+        "code": "PHYS 121",
+        "name": "Mechanics and Waves 1",
+		"description": "http://www.ucalendar.uwaterloo.ca/0910/COURSE/course-PHYS.html#PHYS121"
+      },
+	  {
+        "code": "STV 100",
+        "name": "Society, Technology and Values: Introduction",
+		"description": "http://www.ucalendar.uwaterloo.ca/0910/COURSE/course-STV.html#STV100"
+      }
+	]
+  }
+]

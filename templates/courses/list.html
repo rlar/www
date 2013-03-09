@@ -1,0 +1,23 @@
+<ul>
+  <% _.each(terms, function(term){ %>
+    <li class="term">
+      <label class="code"><%= term.code+" "+term.type %></label> - <label class="season"><%= term.season %></label><br>
+      <ul>
+      <% _.each(term.courses, function(course){ %>
+        <li class="course">
+          <label class="code"><%=course.code%></label>: <label class="name"><%=course.name%></label>
+          
+          <% if (course.description && course.description != "") {%>
+			<a target="_blank" href="<%=course.description%>">Description</a>
+		  <% } 
+			 if (course.homepage && course.homepage != "") {
+		  %>
+			<a target="_blank" href="<%=course.homepage%>">Homepage</a>
+		  <% } %>
+		  
+        </li> 
+      <% }); %>
+      </ul>
+    </li>
+  <% }); %>
+</ul>

@@ -1,0 +1,289 @@
+<html>
+
+<head>
+<title>Rotagon</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    varying vec4 vColor;
+
+    void main(void) {
+        gl_FragColor = vColor;
+    }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec4 vColor;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vColor = aVertexColor;
+    }
+</script>
+
+
+<script type="text/javascript">
+
+    var gl;
+
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+        gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    }
+
+
+    var mvMatrix = mat4.create();
+    var mvMatrixStack = [];
+    var pMatrix = mat4.create();
+
+    function mvPushMatrix() {
+        var copy = mat4.create();
+        mat4.set(mvMatrix, copy);
+        mvMatrixStack.push(copy);
+    }
+
+    function mvPopMatrix() {
+        if (mvMatrixStack.length == 0) {
+            throw "Invalid popMatrix!";
+        }
+        mvMatrix = mvMatrixStack.pop();
+    }
+
+
+    function setMatrixUniforms() {
+        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+    }
+
+
+    function degToRad(degrees) {
+        return degrees * Math.PI / 180;
+    }
+
+
+    var polygonVertexPositionBuffer;
+    var polygonVertexColorBuffer;
+/*
+    var squareVertexPositionBuffer;
+    var squareVertexColorBuffer;
+*/
+  
+    var numSides = 3;
+    function initBuffers() {
+        polygonVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
+
+        // #rob 2*180
+        var degPerVertex = 2*180/(numSides);
+        var vertices = [];
+        
+        
+         // draw polygon as a set of triangles, each with one vertex at
+         // the origin and the other two on an adjacent outer edge
+        for (var i=0; i < numSides; i++) {
+          vertices = vertices.concat(
+            [
+              // origin
+              0.0,  0.0,  0.0, 
+              // first outer vertex
+              Math.cos(degToRad(i*degPerVertex)),  Math.sin(degToRad(i*degPerVertex)),  0.0,
+              // second (clockwise) outer vertex              
+              Math.cos(degToRad((i+1)*degPerVertex)),  Math.sin(degToRad((i+1)*degPerVertex)),  0.0,  
+            ]
+           ); 
+        }
+        
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        polygonVertexPositionBuffer.itemSize = 3;
+        polygonVertexPositionBuffer.numItems = 3*numSides;
+        polygonVertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
+        
+        var colors = [];
+        for (var i=0; i < numSides; i++) {
+            colors = colors.concat(
+              [0.0, 0.0, 0.0, 1.0,
+               1.0, 1.0, 1.0, 1.0,
+               1.0, 1.0, 1.0, 1.0]
+            );
+        }
+        
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        polygonVertexColorBuffer.itemSize = 4;
+        polygonVertexColorBuffer.numItems = 3*numSides;
+    }
+
+
+
+    var rPoly = 0;
+
+    function drawScene() {
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+        mat4.identity(mvMatrix);
+
+        mat4.translate(mvMatrix, [0.0, 0.0, -4.0]);
+
+        mvPushMatrix();
+        mat4.rotate(mvMatrix, degToRad(rPoly), [0, 0, 1]);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, polygonVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, polygonVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        setMatrixUniforms();
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, polygonVertexPositionBuffer.numItems);
+        mvPopMatrix();
+    }
+
+
+    var lastTime = 0;
+    var degPerSecond = 90;
+    function animate() {
+        var timeNow = new Date().getTime();
+        if (lastTime != 0) {
+            var elapsed = timeNow - lastTime;
+
+            rPoly += (degPerSecond * elapsed) / 1000.0;
+        }
+        lastTime = timeNow;
+    }
+
+    function tick() {
+        requestAnimFrame(tick);
+        drawScene();
+        animate();
+    }
+    
+    function changeParam(param, step){
+      if (param == 'numSides'){
+        if ( (step < 0 && numSides > 3 )|| (step > 0 && numSides < 100 ) )
+        {
+          numSides += step;
+          initBuffers();
+          document.getElementById("numSides").innerHTML = numSides;
+        }
+      }
+      else if (param == 'degPerSecond'){
+        degPerSecond = document.getElementById("degPerSecond").value;
+        initBuffers();
+      }
+    }
+
+
+    function webGLStart() {
+        var canvas = document.getElementById("lesson03-canvas");
+        initGL(canvas);
+        initShaders()
+        initBuffers();
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+
+        tick();
+    }
+
+</script>
+
+</head>
+
+
+<body onload="webGLStart();">
+    Sides: <span id="numSides">3</span>
+    <input type="button" onclick="changeParam('numSides', 1)" value="Add side">
+    <input type="button" onclick="changeParam('numSides', -1)" value="Remove side">&nbsp;
+    
+    Rotation (deg CCW): 
+    <input id="degPerSecond" type="number" step="12" value="90" onmouseup="changeParam('degPerSecond')" onchange="changeParam('degPerSecond')"/><br />
+    <canvas id="lesson03-canvas" style="border: none;" width="500" height="500"></canvas>
+
+</body>
+
+</html>

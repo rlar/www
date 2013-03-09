@@ -1,0 +1,874 @@
+<html>
+
+<head>
+<title>map generator</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+
+<script type="text/javascript">
+  var map = [[]];
+  var tile = {
+    WALL: 0,
+    FLOOR: 1,
+    CURRENT: 2
+  };
+  var sideLength;
+  var iterations;
+  var algorithm;
+  
+  function loadParams(){
+    sideLength = Number($("#sideLength").attr("value"));
+    minLength = Number($("#minLength").attr("value"));
+    algorithm = "buildMap" + $("#algorithm").attr("value");
+    
+    if (sideLength%2 == 0){
+      alert("sideLength must be odd! using " + --sideLength);
+      $("#sideLength").attr("value", sideLength);
+    }
+    
+    if (isNaN(minLength) || minLength < 1){
+      alert("minLength must a positive number! using 1");
+      minLength = 1;
+    }
+  }
+  
+  function initMap(){
+    map = [];
+    
+    // set to all floors
+    for (var i = 0; i < sideLength; i++){
+      map.push([]);
+      
+      for (var j = 0; j < sideLength; j++)
+        map[i].push( {visited: false, type: tile.WALL} );
+ 
+    }
+  }
+  
+  function getNeighbourCoords(x, y){
+    return [  {x: Number(x - 1), y: Number(y)}, 
+              {x: Number(x + 1), y: Number(y)},
+              {x: Number(x),     y: Number(y - 1)}, 
+              {x: Number(x),     y: Number(y + 1)}];
+  }
+  
+  function getDiagonalCoords(x, y){
+    return [  {x: Number(x - 1), y: Number(y - 1)}, 
+              {x: Number(x + 1), y: Number(y - 1)},
+              {x: Number(x - 1), y: Number(y + 1)}, 
+              {x: Number(x + 1), y: Number(y + 1)}];
+  }
+  
+  function buildMap(){
+    eval(algorithm+"();");
+  }
+  
+  function buildMapDFS(){
+    /*
+     * Overview:
+     *
+     * map is a 2 dim array of integers - tile.WALL, tile.FLOOR
+     * all start as walls, and this algorithm will flip as many
+     * as necessary to floors to generate a suitably long/weird maze. 
+     *
+     * for now, we will generate a maze in the top (n-1)/2 rows, mirror
+     * it to the bottom, and open up a bridge in the middle tile.
+     *
+     * players will then race to that middle bridge, then race to the
+     * corner opposite their starting corner
+     */
+     
+    var pairs = [ {x: 0, y: 0} , 
+                  {x: 0, y: sideLength-1}, 
+                  {x: sideLength-1, y: 0}, 
+                  {x: sideLength-1, y: sideLength-1}];
+                        
+    // open the player and exit spots            
+    for (var i in pairs)
+      map[ pairs[i].x ][ pairs[i].y ].type = tile.FLOOR;
+     
+    // open up the middle "bridge" tile (could we make the middle strip into 
+    // a river, and have an actual bridge of melting ice over it?)
+    var middleIndex = (sideLength-1)/2;
+    map[middleIndex][middleIndex].type = tile.FLOOR;
+    
+    // use randomized depth first search to build a maze from top left to
+    // top right corner, using tiles in strictly the top half of the maze.
+    // note will will necessary meet with one of the centre "bridge" tiles
+    var currCell = {x: 0, y: 0};
+    var currCellStack = [];
+    var done = 0;
+    
+    while (!done){
+      // mark the current cell as a visited "floor"
+      map[currCell.x][currCell.y].visited = true;
+
+/*      
+      // render the current setup for debugging
+      map[currCell.x][currCell.y].type = tile.CURRENT;
+      renderMap();
+*/      
+      
+      map[currCell.x][currCell.y].type = tile.FLOOR;
+
+      
+      // get a list of its unvisited neighbours (avoiding the middle row)
+      var neighbours = [];
+      
+      pairs = getNeighbourCoords(currCell.x, currCell.y);
+     
+      for (var i in pairs){
+        if (     map[pairs[i].x]
+             &&  map[pairs[i].x][pairs[i].y] 
+             && !map[pairs[i].x][pairs[i].y].visited
+             && pairs[i].y != middleIndex ){
+          neighbours.push({ x:pairs[i].x, y:pairs[i].y });
+        }
+      }
+      
+      // filter out neighbours which would open up a cycle (i.e. has a floor
+      // neighbour other than currCell )
+      for (var i = 0; i < neighbours.length; i++){
+        var hasFloorNeighbour = false;
+        pairs = getNeighbourCoords(neighbours[i].x, neighbours[i].y);
+                
+        for (var j in pairs){
+          if (    map[pairs[j].x]
+               && map[pairs[j].x][pairs[j].y] 
+               && map[pairs[j].x][pairs[j].y].visited
+               && !( pairs[j].x == currCell.x && pairs[j].y == currCell.y )){
+            hasFloorNeighbour = true;
+          }
+        }
+        
+        if (hasFloorNeighbour){
+          //  remove it (splice in JS)
+          neighbours.splice(i,1);
+          i--;
+        }
+      }
+      
+      // if we have no neighbours, either terminate or go back to previous currCell
+      if (neighbours.length < 1){
+        if (currCellStack.length < 1)
+          done = true;
+        else
+          currCell = currCellStack.pop();
+      }
+      else{
+        // randomly select a safe, unvisited neighbour and iterate on it
+        var r = Math.floor( (Math.random()*(neighbours.length)) ); 
+        currCellStack.push(currCell);
+        currCell = neighbours[r];
+      }    
+      
+    }// end DFS while
+    
+    // if the exit is locked off, open it
+    if (    !map[sideLength-2][0].visited 
+         && !map[sideLength-1][1].visited){
+      // run along the column flipping walls to floors until a path is made
+      for (var i = 1; i < (sideLength-1)/2; i++){
+        if (map[sideLength-1][i].type == tile.FLOOR){
+          i = sideLength;
+        } 
+        else {
+          map[sideLength-1][i].type = tile.FLOOR;
+          
+          if (map[sideLength-2][i].visited){
+            i = sideLength;
+          }
+        }
+      }
+        
+    }
+    
+    // if the bridge is locked off, open it
+    var mid = (sideLength-1)/2
+    if ( !map[mid][mid-1].visited ){
+      // run along the column flipping walls to floors until a path is made
+      for (var j = mid-1; j > 0; j--){
+        if (typeof(map[mid][j]) == "undefined") alert("pause")
+        map[mid][j].type = tile.FLOOR;
+        
+        if (map[mid-1][j].visited || map[mid+1][j].visited || map[mid][j-1].visited){
+          i = sideLength;
+        }
+      }
+    }
+
+    // break up any runs of 3 or 4 walls to make
+    // things more interesting
+    for (var i = 0; i < map.length - 4; i++){
+      for (var j = 0; j < (map[i].length-1)/2 ; j++){
+        if (    map[i][j].type == tile.WALL
+             && map[i][j].type == map[i+1][j].type
+             && map[i][j].type == map[i+2][j].type
+             && map[i][j].type == map[i+3][j].type)
+        {
+          // pick one of the two middle tiles to open up
+          var r = Math.floor( 2*Math.random() ) + 1; // 1 <= r <= 2
+
+          if (    (!map[i+r][j-1] || map[i+r][j-1].type == tile.WALL)
+               && (!map[i+r][j+1] || map[i+r][j+1].type == tile.WALL))
+          {
+            // the randomly chosen tile is surrounded by walls, flip
+            // the opposite one
+            map[(r == 2)? i+1 : i+2][j].type = tile.FLOOR;
+          }
+          else{
+            map[i+r][j].type = tile.FLOOR;
+          }
+            
+        }
+      }
+    }
+    
+    // mirror the map to the bottom
+    for (var i = 0; i < map.length; i++){
+      for (var j = 0; j < (map[i].length-1)/2 ; j++){
+        map[i][sideLength - j - 1].type = map[i][j].type;
+        map[i][sideLength - j - 1].visited = map[i][j].type;
+      }
+    }
+  }
+  
+  function buildMapDFSwDirBias(){
+    /*
+     * Overview:
+     *
+     * map is a 2 dim array of integers - tile.WALL, tile.FLOOR
+     * all start as walls, and this algorithm will flip as many
+     * as necessary to floors to generate a suitably long/weird maze. 
+     *
+     * for now, we will generate a maze in the top (n-1)/2 rows, mirror
+     * it to the bottom, and open up a bridge in the middle tile.
+     *
+     * players will then race to that middle bridge, then race to the
+     * corner opposite their starting corner
+     *
+     * ^ this is the same as buildMapDFS, in this one we bias the exploration loop
+     *   towards going in the same direction as it randomly look last time so we
+     *   have longer corridors
+     */
+     
+    var pairs = [ {x: 0, y: 0} , 
+                  {x: 0, y: sideLength-1}, 
+                  {x: sideLength-1, y: 0}, 
+                  {x: sideLength-1, y: sideLength-1}];
+                        
+    // open the player and exit spots            
+    for (var i in pairs)
+      map[ pairs[i].x ][ pairs[i].y ].type = tile.FLOOR;
+     
+    // open up the middle "bridge" tile (could we make the middle strip into 
+    // a river, and have an actual bridge of melting ice over it?)
+    var middleIndex = (sideLength-1)/2;
+    map[middleIndex][middleIndex].type = tile.FLOOR;
+    
+    // use randomized depth first search to build a maze from top left to
+    // top right corner, using tiles in strictly the top half of the maze.
+    // note will will necessary meet with one of the centre "bridge" tiles
+    var currCell = {x: 0, y: 0};
+    var currCellStack = [];
+    var done = 0;
+    
+    while (!done){
+      // track the previous tile so that we can bias the randomized search
+      // towards heading in the same direction for longer
+      var prevCell = currCellStack[currCellStack.length - 1]; // might be null
+    
+      // mark the current cell as a visited "floor"
+      map[currCell.x][currCell.y].visited = true;
+
+/*      
+      // render the current setup for debugging
+      map[currCell.x][currCell.y].type = tile.CURRENT;
+      renderMap();
+*/      
+      
+      map[currCell.x][currCell.y].type = tile.FLOOR;
+
+      
+      // get a list of its unvisited neighbours (avoiding the middle row)
+      var neighbours = [];
+      
+      pairs = getNeighbourCoords(currCell.x, currCell.y);
+     
+      for (var i in pairs){
+        if (     map[pairs[i].x]
+             &&  map[pairs[i].x][pairs[i].y] 
+             && !map[pairs[i].x][pairs[i].y].visited
+             && pairs[i].y != middleIndex ){
+          neighbours.push({ x:pairs[i].x, y:pairs[i].y });
+        }
+      }
+      
+      // filter out neighbours which would open up a cycle (i.e. has a floor
+      // neighbour other than currCell )
+      for (var i = 0; i < neighbours.length; i++){
+        var hasFloorNeighbour = false;
+        pairs = getNeighbourCoords(neighbours[i].x, neighbours[i].y);
+                
+        for (var j in pairs){
+          if (    map[pairs[j].x]
+               && map[pairs[j].x][pairs[j].y] 
+               && map[pairs[j].x][pairs[j].y].visited
+               && !( pairs[j].x == currCell.x && pairs[j].y == currCell.y )){
+            hasFloorNeighbour = true;
+          }
+        }
+        
+        if (hasFloorNeighbour){
+          //  remove it (splice in JS)
+          neighbours.splice(i,1);
+          i--;
+        }
+      }
+      
+      // if we have no neighbours, either terminate or go back to previous currCell
+      if (neighbours.length < 1){
+        if (currCellStack.length < 1)
+          done = true;
+        else
+          currCell = currCellStack.pop();
+      }
+      else{
+        // determine which neighbour would make a straight line from prevCell to currCell to neighbour
+        var boolBias = false;
+        var nextCellNgbrIdx = -1;
+        if (prevCell){
+          var nextCell = { x: Number(2*currCell.x - prevCell.x), 
+                           y: Number(2*currCell.y - prevCell.y) };
+        
+          for (var i in neighbours){
+            if (neighbours[i].x == nextCell.x && neighbours[i].y == nextCell.y){
+              nextCellNgbrIdx = i;
+              boolBias = true;
+            }
+          }
+        }
+        
+        // randomly (with bias) select a safe, unvisited neighbour and iterate on it
+        var r = Math.floor( (Math.random()*(neighbours.length*2)) );
+        if (r == neighbours.length*2) r--; //just in case.. i think above should be length-1 but this works?
+        
+        if (r >= neighbours.length){
+          if (boolBias)
+            r = nextCellNgbrIdx;
+          else
+            r = (r - r%2) / 2;
+        }
+        
+        currCellStack.push(currCell);
+        
+        
+        currCell = neighbours[r];
+      }    
+      
+    }// end DFS while
+    
+    // if the exit is locked off, open it
+    if (    !map[sideLength-2][0].visited 
+         && !map[sideLength-1][1].visited){
+      // run along the column flipping walls to floors until a path is made
+      for (var i = 1; i < (sideLength-1)/2; i++){
+        if (map[sideLength-1][i].type == tile.FLOOR){
+          i = sideLength;
+        } 
+        else {
+          map[sideLength-1][i].type = tile.FLOOR;
+          
+          if (map[sideLength-2][i].visited){
+            i = sideLength;
+          }
+        }
+      }
+        
+    }
+    
+    // if the bridge is locked off, open it
+    var mid = (sideLength-1)/2
+    if ( !map[mid][mid-1].visited ){
+      // run along the column flipping walls to floors until a path is made
+      for (var j = mid-1; j > 0; j--){
+        if (typeof(map[mid][j]) == "undefined") alert("pause")
+        map[mid][j].type = tile.FLOOR;
+        
+        if (map[mid-1][j].visited || map[mid+1][j].visited || map[mid][j-1].visited){
+          i = sideLength;
+        }
+      }
+    }
+
+    // break up any runs of 3 or 4 walls to make
+    // things more interesting
+    for (var i = 0; i < map.length - 4; i++){
+      for (var j = 0; j < (map[i].length-1)/2 ; j++){
+        if (    map[i][j].type == tile.WALL
+             && map[i][j].type == map[i+1][j].type
+             && map[i][j].type == map[i+2][j].type
+             && map[i][j].type == map[i+3][j].type)
+        {
+          // pick one of the two middle tiles to open up
+          var r = Math.floor( 2*Math.random() ) + 1; // 1 <= r <= 2
+
+          if (    (!map[i+r][j-1] || map[i+r][j-1].type == tile.WALL)
+               && (!map[i+r][j+1] || map[i+r][j+1].type == tile.WALL))
+          {
+            // the randomly chosen tile is surrounded by walls, flip
+            // the opposite one
+            map[(r == 2)? i+1 : i+2][j].type = tile.FLOOR;
+          }
+          else{
+            map[i+r][j].type = tile.FLOOR;
+          }
+            
+        }
+      }
+    }
+    
+    // mirror the map to the bottom
+    for (var i = 0; i < map.length; i++){
+      for (var j = 0; j < (map[i].length-1)/2 ; j++){
+        map[i][sideLength - j - 1].type = map[i][j].type;
+        map[i][sideLength - j - 1].visited = map[i][j].type;
+      }
+    }
+  }
+  
+  function buildMapDFSNoDiagonal(){
+    /*
+     * Overview:
+     *
+     * map is a 2 dim array of integers - tile.WALL, tile.FLOOR
+     * all start as walls, and this algorithm will flip as many
+     * as necessary to floors to generate a suitably long/weird maze. 
+     *
+     * for now, we will generate a maze in the top (n-1)/2 rows, mirror
+     * it to the bottom, and open up a bridge in the middle tile.
+     *
+     * players will then race to that middle bridge, then race to the
+     * corner opposite their starting corner
+     *
+     * ^ this is the same as buildMapDFS, in this one we bias the exploration loop
+     *   towards going in the same direction as it randomly look last time so we
+     *   have longer corridors
+     */
+     
+    var pairs = [ {x: 0, y: 0} , 
+                  {x: 0, y: sideLength-1}, 
+                  {x: sideLength-1, y: 0}, 
+                  {x: sideLength-1, y: sideLength-1}];
+                        
+    // open the player and exit spots            
+    for (var i in pairs)
+      map[ pairs[i].x ][ pairs[i].y ].type = tile.FLOOR;
+     
+    // open up the middle "bridge" tile (could we make the middle strip into 
+    // a river, and have an actual bridge of melting ice over it?)
+    var middleIndex = (sideLength-1)/2;
+    map[middleIndex][middleIndex].type = tile.FLOOR;
+    
+    // use randomized depth first search to build a maze from top left to
+    // top right corner, using tiles in strictly the top half of the maze.
+    // note will will necessary meet with one of the centre "bridge" tiles
+    var currCell = {x: 0, y: 0};
+    var currCellStack = [];
+    var done = 0;
+    
+    while (!done){
+      // track the previous tile so that we can bias the randomized search
+      // towards heading in the same direction for longer
+      var prevCell = currCellStack[currCellStack.length - 1]; // might be null
+    
+      // mark the current cell as a visited "floor"
+      map[currCell.x][currCell.y].visited = true;
+
+/*      
+      // render the current setup for debugging
+      map[currCell.x][currCell.y].type = tile.CURRENT;
+      renderMap();
+*/      
+      
+      map[currCell.x][currCell.y].type = tile.FLOOR;
+
+      
+      // get a list of its unvisited neighbours (avoiding the middle row)
+      var neighbours = [];
+      
+      pairs = getNeighbourCoords(currCell.x, currCell.y);
+     
+      for (var i in pairs){
+        if (     map[pairs[i].x]
+             &&  map[pairs[i].x][pairs[i].y] 
+             && !map[pairs[i].x][pairs[i].y].visited
+             && pairs[i].y != middleIndex ){
+          neighbours.push({ x:pairs[i].x, y:pairs[i].y });
+        }
+      }
+      
+      // filter out unsuitable neighbours 
+      for (var i = 0; i < neighbours.length; i++){
+        var removeMe = false;
+        pairs = getNeighbourCoords(neighbours[i].x, neighbours[i].y);
+        
+        for (var j in pairs){
+          // remove ones that would open up a cycle
+          if (    map[pairs[j].x]
+               && map[pairs[j].x][pairs[j].y] 
+               && map[pairs[j].x][pairs[j].y].visited
+               && !( pairs[j].x == currCell.x && pairs[j].y == currCell.y )){
+            removeMe = true;
+          }
+          
+          // remove ones who are diagonal to an open square
+          var count = 0;
+          var diagPairs = getDiagonalCoords(neighbours[i].x, neighbours[i].y)
+          for (var k in diagPairs){
+            if (    map[diagPairs[k].x]
+                 && map[diagPairs[k].x][diagPairs[k].y] 
+                 && map[diagPairs[k].x][diagPairs[k].y].type == tile.FLOOR){
+              count++;
+            }
+          }
+          
+          if (count > 2)
+            removeMe = true;
+        }
+        
+        if (removeMe){
+          //  remove it (splice in JS)
+          neighbours.splice(i,1);
+          i--;
+        }
+      }
+      
+      // if we have no neighbours, either terminate or go back to previous currCell
+      if (neighbours.length < 1){
+        if (currCellStack.length < 1)
+          done = true;
+        else
+          currCell = currCellStack.pop();
+      }
+      else{
+        // determine which neighbour would make a straight line from prevCell to currCell to neighbour
+        var boolBias = false;
+        var nextCellNgbrIdx = -1;
+        if (prevCell){
+          var nextCell = { x: Number(2*currCell.x - prevCell.x), 
+                           y: Number(2*currCell.y - prevCell.y) };
+        
+          for (var i in neighbours){
+            if (neighbours[i].x == nextCell.x && neighbours[i].y == nextCell.y){
+              nextCellNgbrIdx = i;
+              boolBias = true;
+            }
+          }
+        }
+        
+        // randomly (with bias) select a safe, unvisited neighbour and iterate on it
+        var r = Math.floor( (Math.random()*(neighbours.length*2)) );
+        if (r == neighbours.length*2) r--; //just in case.. i think above should be length-1 but this works?
+        
+        if (r >= neighbours.length){
+          if (boolBias)
+            r = nextCellNgbrIdx;
+          else
+            r = (r - r%2) / 2;
+        }
+        
+        currCellStack.push(currCell);
+        
+        
+        currCell = neighbours[r];
+      }    
+      
+    }// end DFS while
+    
+    // if the exit is locked off, open it
+    if (    !map[sideLength-2][0].visited 
+         && !map[sideLength-1][1].visited){
+      // run along the column flipping walls to floors until a path is made
+      for (var i = 1; i < (sideLength-1)/2; i++){
+        if (map[sideLength-1][i].type == tile.FLOOR){
+          i = sideLength;
+        } 
+        else {
+          map[sideLength-1][i].type = tile.FLOOR;
+          
+          if (map[sideLength-2][i].visited){
+            i = sideLength;
+          }
+        }
+      }
+        
+    }
+    
+    // if the bridge is locked off, open it
+    var mid = (sideLength-1)/2
+    if ( !map[mid][mid-1].visited ){
+      // run along the column flipping walls to floors until a path is made
+      for (var j = mid-1; j > 0; j--){
+        if (typeof(map[mid][j]) == "undefined") alert("pause")
+        map[mid][j].type = tile.FLOOR;
+        
+        if (map[mid-1][j].type == tile.FLOOR || map[mid+1][j].type == tile.FLOOR || map[mid][j-1].type == tile.FLOOR){
+          i = sideLength;
+        }
+      }
+    }
+
+    // break up any runs of 3 or 4 walls to make
+    // things more interesting
+    for (var i = 0; i < map.length - 4; i++){
+      for (var j = 0; j < (map[i].length-1)/2 ; j++){
+        if (    map[i][j].type == tile.WALL
+             && map[i][j].type == map[i+1][j].type
+             && map[i][j].type == map[i+2][j].type
+             && map[i][j].type == map[i+3][j].type)
+        {
+          // pick one of the two middle tiles to open up
+          var r = Math.floor( 2*Math.random() ) + 1; // 1 <= r <= 2
+
+          if (    (!map[i+r][j-1] || map[i+r][j-1].type == tile.WALL)
+               && (!map[i+r][j+1] || map[i+r][j+1].type == tile.WALL))
+          {
+            // the randomly chosen tile is surrounded by walls, flip
+            // the opposite one
+            map[(r == 2)? i+1 : i+2][j].type = tile.FLOOR;
+          }
+          else{
+            map[i+r][j].type = tile.FLOOR;
+          }
+            
+        }
+      }
+    }
+    
+    // mirror the map to the bottom
+    for (var i = 0; i < map.length; i++){
+      for (var j = 0; j < (map[i].length-1)/2 ; j++){
+        map[i][sideLength - j - 1].type = map[i][j].type;
+        map[i][sideLength - j - 1].visited = map[i][j].type;
+      }
+    }
+  }
+  
+  function getShortestDistIdx(Q){
+    var min = map[ Q[0].x ][ Q[0].y ].distance;
+    var minIdx = 0;
+    for (var idx in Q){
+      var x = Q[idx].x;
+      var y = Q[idx].y;
+      
+      if (map[x][y].distance < min){
+        minIdx = idx;
+        min = map[x][y].distance;
+      }
+    }
+    
+    //if (minIdx < 0)
+    //  alert("the floor of this maze is not completely connected")
+    return minIdx;
+  }
+  
+  var arrShortestPathLengths = [];
+  function solveMap(){
+    // use dijkstra's to see how long this puzzle takes to solve
+    
+    // Initializations
+    var Q = [];
+    for (var i in map){
+      for (var j in map[i]){
+        if (map[i][j].type == tile.FLOOR){
+          map[i][j].distance = Number.POSITIVE_INFINITY; // Unknown distance function from source to v
+          map[i][j].parent = undefined; // Previous node in optimal path from source
+          map[i][j].inQ = true; // only check neighbours that are still in the Q
+          Q.push({x: Number(i), y: Number(j)});
+        }
+      }
+    }
+    map[0][0].distance = 0;
+    
+    // explore loop
+    while (Q.length > 0){
+      var idx = getShortestDistIdx(Q);
+      var uCoords = Q[idx];
+      var u = map[uCoords.x][uCoords.y];
+/*
+// #rob for debugging   
+u.type = tile.CURRENT;
+renderMap();
+u.type = tile.FLOOR;
+*/
+      if ( !isFinite(u.distance) ){
+        Q = []; // nothing left to reach from source
+      }
+      else{
+        Q.splice(idx,1); // remove u
+        u.inQ = false;
+        
+        // "relax" neighbours
+        var pairs = getNeighbourCoords(uCoords.x, uCoords.y);
+                      
+        for (var j in pairs){
+          if (    map[pairs[j].x]
+               && map[pairs[j].x][pairs[j].y] 
+               && map[pairs[j].x][pairs[j].y].inQ
+               && map[pairs[j].x][pairs[j].y].distance > (u.distance+1) ){
+            map[pairs[j].x][pairs[j].y].distance = u.distance + 1;
+            map[pairs[j].x][pairs[j].y].prev = u;
+          }
+        }
+      }
+    }
+    
+    // check final distance
+    var solutionLength = map[sideLength-1][sideLength-1].distance;
+    
+    if ( !isFinite(solutionLength) )
+      alert("Found an unsolveable maze!! do not close this window, see what went wrong!!")
+    else
+      arrShortestPathLengths.push(solutionLength)
+  }
+  
+  function renderMap(){
+    var strMap = "";
+    
+    for (var i in map)
+      for (var j in map[i]){
+        var strVisited = (map[j][i].visited)? ' visited' : '';
+      
+        if (map[j][i].type == tile.WALL)
+          strMap += "<div class='tile wall"+strVisited+"'></div>";
+        else if (map[j][i].type == tile.FLOOR)
+          strMap += "<div class='tile floor"+strVisited+"'>"+map[j][i].distance+"</div>";
+        else if (map[j][i].type == tile.CURRENT)
+          strMap += "<div class='tile current"+strVisited+"'></div>";
+        else
+          strMap += "<div class='tile unknown"+strVisited+"'></div>";
+      }
+          
+    $("#map").html( strMap );
+    
+    // wrap after each line of divs
+    for (var i in $("div.tile"))
+      if ( i%sideLength == 0 )
+        $("div.tile")[i].className += " first";
+  }
+  
+  function printMetrics(){
+    var log = document.getElementById("log");
+    var sum = 0;
+    var avg, N, stdDev = 0;
+    
+    for (var i in arrShortestPathLengths ){
+      sum += arrShortestPathLengths[i];
+    }
+    
+    N = arrShortestPathLengths.length;
+    avg = sum/N;
+    
+    for (var i in arrShortestPathLengths ){
+      stdDev += Math.pow( (arrShortestPathLengths[i] - avg), 2 );
+    }
+    
+    stdDev = Math.sqrt( stdDev/N );
+
+    log.value += "Side L: " + sideLength + "\t\tAlgorithm: " + algorithm + "\n"
+               + "  Maps gen'd:  " + N + "\tFinal Length: "+ arrShortestPathLengths[N-1]
+               + "\n  Avg: " + Math.floor(avg*100)/100 + "\t\tStd Dev: "+Math.floor(stdDev*100)/100+"\n";
+  }
+  
+  function main(){
+    arrShortestPathLengths = [];
+    loadParams();
+    
+    /*
+    for (var i = 0; i < iterations; i++){
+      initMap();
+      buildMap();
+      solveMap();
+      while ( arrShortestPathLengths[arrShortestPathLengths.length-1] ){
+      }
+      renderMap();
+    }
+    */
+    do {
+      initMap();
+      buildMap();
+      solveMap();
+    }
+    while( arrShortestPathLengths[arrShortestPathLengths.length-1] < minLength );
+    
+    renderMap();
+    printMetrics();
+  }
+
+</script>
+<style type="text/css">
+#map {
+  background-color: grey;
+  width: auto;
+}
+
+/* game blocks will be rendered with these */
+div.tile {
+  float: left;
+  margin: 1px;
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+div.first{
+  clear: both;
+}
+div.wall{
+ background-color: black;
+}
+div.floor{
+ background-color: grey;
+}
+
+/* for debugging */
+div.current{
+ background-color: blue;
+}
+
+div.visited{
+  border: 1px dashed yellow;
+  width: 18px;
+  height: 18px;
+}
+
+
+
+</style>
+</head>
+
+
+<body>
+
+  <div id="config">
+    side length:<input id="sideLength" type="text" value="13">
+    min solution length:<input id="minLength" type="text" value="30">
+    <!-- iterations:<input id="iterations" type="text" value="15"> -->
+    algorithm:
+    <select id="algorithm">
+      <option>DFS</option>
+      <option>DFSwDirBias</option>
+      <option>DFSNoDiagonal</option>
+    </select>
+    <input type="button" onclick="main()" value="Generate">
+  </div>
+  <div id="map">
+    map will go here once generated
+  </div>
+  
+  <textarea id="log" cols="60" rows="20"></textarea><br>
+</body>
+
+</html>

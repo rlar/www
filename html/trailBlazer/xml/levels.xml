@@ -1,0 +1,47 @@
+<?xml version ="1.0"?> 
+<!-- R: red tile, B: blue tile, #: wall, ' ': empty  -->
+<levels>
+  <level idx = "0" startX = "0" startY = "0" minMoves = "11">
+    <rows>
+      <row>  #                 </row>
+      <row>B #                 </row>
+      <row>B #                 </row>
+      <row>B #                 </row>
+      <row>B #                 </row>
+      <row>B # # # # # # #     </row>
+      <row>B B B B   B   #     </row>
+      <row># # # # # # # #     </row>
+      <row>                    </row>
+      <row>                    </row>
+    </rows>
+  </level>
+  <level idx="1" startX="0" startY="0" minMoves="56">
+    <rows>
+      <row>  # B B B # # B B B </row>
+      <row>B # B # B B # B # B </row>
+      <row>B # B B # B # B # B </row>
+      <row>B # B B # B # B B B </row>
+      <row>B # B B # B # # B B </row>
+      <row>B B B B # B B B # B </row>
+      <row># B B B # B B B B B </row>
+      <row># B # B # B B # # # </row>
+      <row># B # B # # # # # # </row>
+      <row># B B B # # # # # # </row>
+    </rows>
+  </level>
+  <level idx="1" startX="0" startY="0" minMoves="56">
+    <rows>
+      <row>  # B B B # # B B B </row>
+      <row>B # B # B B # # # B </row>
+      <row>B # B B # B # B B B </row>
+      <row>B # B B # B # B B B </row>
+      <row>B # B B # B # # B B </row>
+      <row>B B B B # B B B # B </row>
+      <row># B B B # B B B B B </row>
+      <row># B # B # B B # # # </row>
+      <row># B # B # # # # # # </row>
+      <row># B B B # # # # # # </row>
+    </rows>
+  </level>
+</levels>
+
