@@ -176,7 +176,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 	function initPostMeshBuilder() {
 		postMeshBuilder = new MeshBuilder("Post");
 		
-        postMeshBuilder.AddTri(0,0);
+        postMeshBuilder.AddFencePost( {x:0,y:0,z:0}, {x:1,y:3,z:1} );
 		
 		postMeshBuilder.Buffer(gl);
     }
@@ -201,8 +201,15 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
 		// back the camera up a bit
+        //mat4.identity(mvMatrix);
+        //mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
+		
+		// iso camera kinda
         mat4.identity(mvMatrix);
-        mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
+		mat4.translate(mvMatrix, [0.0, -2.0, -13.0]); // push in 13, down 2
+		mat4.rotate(mvMatrix, Math.PI/6, [1, 0, 0]); // pitch 30
+		mat4.rotate(mvMatrix, Math.PI/6, [0, 1, 0]); // yaw 30
+		
 		/*
         mvPushMatrix();
         mat4.rotate(mvMatrix, degToRad(rPoly), [0, 0, 1]);
