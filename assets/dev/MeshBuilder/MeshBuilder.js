@@ -1,5 +1,3 @@
-// A Vector parameter (prefixed with a lowercase v) indicates that
-// this parameter must be supplied with an object with the properties x, y, z
 function MeshBuilder(name){
 	this.name = name;
 	
@@ -20,27 +18,27 @@ MeshBuilder.prototype.AddFencePost = function(vLocation,vScale) {
 
 	// Declare builder brush vertices
 	postVertices = ( 
-			[ {x: 0.0, y: 0.0, z: 0.0}, 
-			  {x: 0.0, y: 1.0, z: 0.0},
-			  {x: 1.0, y: 1.0, z: 0.0}, 			  
-			  {x: 1.0, y: 0.0, z: 0.0},
-			  {x: 0.0, y: 0.0, z: 1.0}, 
-			  {x: 0.0, y: 1.0, z: 1.0},
-			  {x: 1.0, y: 1.0, z: 1.0}, 			  
-			  {x: 1.0, y: 0.0, z: 1.0}]);
+			[ [0.0, 0.0, 0.0], 
+			  [0.0, 1.0, 0.0],
+			  [1.0, 1.0, 0.0], 			  
+			  [1.0, 0.0, 0.0],
+			  [0.0, 0.0, 1.0], 
+			  [0.0, 1.0, 1.0],
+			  [1.0, 1.0, 1.0], 			  
+			  [1.0, 0.0, 1.0]]);
 		
 	// Apply scale
 	for (var i = 0; i < 8; i++){
-		postVertices[i].x *= vScale.x;
-		postVertices[i].y *= vScale.y;
-		postVertices[i].z *= vScale.z;
+		postVertices[i][0] *= vScale[0];
+		postVertices[i][1] *= vScale[1];
+		postVertices[i][2] *= vScale[2];
 	}
 	
 	// Apply location
 	for (var i = 0; i < 8; i++){
-		postVertices[i].x += vLocation.x;
-		postVertices[i].y += vLocation.y;
-		postVertices[i].z += vLocation.z;
+		postVertices[i][0] += vLocation[0];
+		postVertices[i][1] += vLocation[1];
+		postVertices[i][2] += vLocation[2];
 	}
 	
 	this.AddRectPrism( postVertices );
@@ -74,7 +72,7 @@ MeshBuilder.prototype.AddTri = function(vCoords) {
 
 	// Build a quad from two triangles
 	for (var i = 0; i < 3; i++)
-		this.vertices = this.vertices.concat( [vCoords[i].x, vCoords[i].y, vCoords[i].z] );
+		this.vertices = this.vertices.concat( [vCoords[i][0], vCoords[i][1], vCoords[i][2]] );
 	
 	this.numItems += 3;
 	
