@@ -10,6 +10,43 @@ function MeshBuilder(name){
 	this.colourBuffer;
 }
 
+/***		AddPoly functions		***/
+
+// Builds a post from the given parameters
+// if the fence length is not divisible by segment length, the fence will stop early
+// todo add vSegmentNumber, if one is set to -1 then use the other
+// vScale is width, height, depth scaling of the fence lumber, but not change start or end
+// vTilt is xTilt, yaw, zTilt // todo implement with the new gl lib?
+MeshBuilder.prototype.AddFence = function(vStartLocation,vEndLocation,vSegmentLength) {
+
+	// Declare builder brush vertices
+	postVertices = ( 
+			[ [0.0, 0.0, 0.0], 
+			  [0.0, 1.0, 0.0],
+			  [1.0, 1.0, 0.0], 			  
+			  [1.0, 0.0, 0.0], 
+			  [0.0, 0.0, 1.0], 
+			  [0.0, 1.0, 1.0],
+			  [1.0, 1.0, 1.0], 			  
+			  [1.0, 0.0, 1.0]]);
+		
+	// Apply scale
+	for (var i = 0; i < 8; i++){
+		postVertices[i][0] *= vScale[0];
+		postVertices[i][1] *= vScale[1];
+		postVertices[i][2] *= vScale[2];
+	}
+	
+	// Apply location
+	for (var i = 0; i < 8; i++){
+		postVertices[i][0] += vLocation[0];
+		postVertices[i][1] += vLocation[1];
+		postVertices[i][2] += vLocation[2];
+	}
+	
+	this.AddRectPrism( postVertices );
+}
+
 // Builds a post from the given parameters
 // vLocation is bottom left corner
 // vScale is width, height, depth
@@ -21,7 +58,7 @@ MeshBuilder.prototype.AddFencePost = function(vLocation,vScale) {
 			[ [0.0, 0.0, 0.0], 
 			  [0.0, 1.0, 0.0],
 			  [1.0, 1.0, 0.0], 			  
-			  [1.0, 0.0, 0.0],
+			  [1.0, 0.0, 0.0], 
 			  [0.0, 0.0, 1.0], 
 			  [0.0, 1.0, 1.0],
 			  [1.0, 1.0, 1.0], 			  
@@ -66,13 +103,14 @@ MeshBuilder.prototype.AddQuad = function(vCoords) {
 	this.AddTri( [vCoords[0], vCoords[2], vCoords[3]] );
 }
 
-// builds a tri from three corners, listes counter clockwise
+// builds a tri from three corners, listed counter clockwise
 // vCoords[3]: array of three vector objects (with the properties x, y, z)
 MeshBuilder.prototype.AddTri = function(vCoords) {
 
 	// Build a quad from two triangles
 	for (var i = 0; i < 3; i++)
-		this.vertices = this.vertices.concat( [vCoords[i][0], vCoords[i][1], vCoords[i][2]] );
+		for (var j = 0; j < 3; j++)
+		this.vertices = this.vertices.concat( vCoords[i][j] );
 	
 	this.numItems += 3;
 	
@@ -83,15 +121,13 @@ MeshBuilder.prototype.AddTri = function(vCoords) {
 	);
 }
 
+/***		End AddPoly functions		***/
+/***		Rendering functions		***/
+
 // gl: WebGL context
 MeshBuilder.prototype.Buffer = function(gl) {
 	// positions
-	this.vertexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
-		
-	// colours
-	this.colourBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.colourBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colours), gl.STATIC_DRAW);
+	this.vertexBuffer = gl.initBuffer(gl.ARRAY_BUFFER, new Float32Array(this.vertices));	
+	this.colourBuffer = gl.initBuffer(gl.ARRAY_BUFFER, new Float32Array(this.colours));    
 }
+/***	End Rendering functions		***/

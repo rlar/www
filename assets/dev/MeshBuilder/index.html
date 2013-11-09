@@ -15,9 +15,11 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 
 <script type="text/javascript" src="gl-matrix.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="LineBuilder.js"></script>
 <script type="text/javascript" src="MeshBuilder.js"></script>
 <script type="text/javascript" src="Engine.js"></script>
-
+<script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
+		
 <script id="shader-fs" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -48,6 +50,38 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 
 	"use strict";
 
+	// Code that doesn't have a proper home yet (*.js) lives here
+	
+	/*
+	 *  jQuery
+	 */
+	 var bMouseDown = false;
+	 var MouseX = 0;
+	 var MouseY = 0;
+	 
+	function bindMouse() {
+		// track this for interface reasons 
+		$("canvas").mousedown(function() {
+			bMouseDown = true;
+		});
+		
+		$("canvas").mouseup(function(){
+			bMouseDown = false;
+		});
+		
+		$( "canvas" ).mousemove(function( event ) {
+			if (bMouseDown)
+			{
+				// doesn't matter which coord prop we use on the event if we're consistent
+				MouseX = event.clientX;
+				MouseY = event.clientY;
+			}
+		});
+	}
+	 
+	/*
+	 *  WebGL
+	 */
     var gl;
 
     function initGL(canvas) {
@@ -55,6 +89,12 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
+			gl.initBuffer = function(glBufferParam, data) {
+				var buf = gl.createBuffer();
+				gl.bindBuffer(glBufferParam, buf);
+				gl.bufferData(glBufferParam, data, gl.STATIC_DRAW);
+				return buf;
+			};
         } catch (e) {
         }
         if (!gl) {
@@ -62,7 +102,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
         }
     }
 
-	// Some kinda shader parsing utility... learningwebgl.com
+	// Shader parsing utility... learningwebgl.com
 	// gl: webGl context
 	// id: html id of the script block
     function getShader(gl, id) {
@@ -162,15 +202,6 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 
     var polygonVertexPositionBuffer;
     var polygonVertexColorBuffer;
-/*
-    var squareVertexPositionBuffer;
-    var squareVertexColorBuffer;
-*/
-  
-    var numSides = 3;
-    function initBuffers() {
-      
-    }
 	
 	// Post stuff. start of procedural generation?
     var postMeshBuilder;
@@ -183,6 +214,40 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 		postMeshBuilder.Buffer(gl);
     }
 	
+	var axisIndicatorBuilder;
+	
+	function initAxisIndicator() {
+		axisIndicatorBuilder = new LineBuilder("Axis Indicator");
+		
+        axisIndicatorBuilder.AddSegment( [[0,0,0], [4,0,0]] );
+		axisIndicatorBuilder.AddSegment( [[0,0,0], [0,4,0]] );
+		axisIndicatorBuilder.AddSegment( [[0,0,0], [0,0,4]] );
+		
+		
+		axisIndicatorBuilder.Buffer(gl);
+    }
+	
+	function drawLineBuilder(lineBuilder) {
+		
+		
+		lineBuilder.Buffer(gl);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, axisIndicatorBuilder.indexBuffer)
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, axisIndicatorBuilder.vertexBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, axisIndicatorBuilder.colourBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
+		setMatrixUniforms();
+		gl.lineWidth(1.0);
+		gl.uniform4f(shaderProgram.colorUniform, 0, 0, 0, 1);
+		gl.drawElements(gl.LINES, axisIndicatorBuilder.numItems, gl.UNSIGNED_SHORT, 0);
+		// todo unbind buffers?
+	}
+
+	
+	
 	function drawMeshBuilder(meshBuilder) {
 		gl.bindBuffer(gl.ARRAY_BUFFER, meshBuilder.vertexBuffer);
 		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
@@ -193,6 +258,52 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 		setMatrixUniforms();
 		gl.drawArrays(gl.TRIANGLES, 0, meshBuilder.numItems);
 	}
+	/*
+	// redo this myself - drawline code from http://internetexception.com/post/2013/02/25/Line-in-WebGL-and-why-you-gonna-do-this-on-your-own.aspx
+	// note the sneaky glELEM.. named parameter
+	function initBuffer2(glBufferType, data) {
+		var buf = gl.createBuffer();
+		gl.bindBuffer(glBufferType, buf);
+		gl.bufferData(glBufferType, data, gl.STATIC_DRAW);
+		return buf;
+	}
+
+	var vbuf;
+	var ibuf;	
+	function initBuffers2(vtx, idx) {
+		vbuf = initBuffer2(gl.ARRAY_BUFFER, vtx);
+		
+		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+	}
+		
+	function unbindBuffers2() {
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+	}
+
+	
+	// todo: drawModellingGnomon
+	function drawLine(){
+		gl.bindBuffer(gl.ARRAY_BUFFER, meshBuilder.vertexBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, meshBuilder.colourBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
+		setMatrixUniforms();
+		gl.drawArrays(gl.TRIANGLES, 0, meshBuilder.numItems);
+		
+		
+		var vtx = new Float32Array(
+			[0.0, 0.0, 0.0, 
+			3.0, 0.0, 0.0]
+		);
+		initBuffers2(vtx, idx);
+		gl.lineWidth(1.0);
+		gl.uniform4f(shaderProgram.colorUniform, 0, 0, 0, 1);
+		gl.drawElements(gl.LINES, 2, gl.UNSIGNED_SHORT, 0);
+		unbindBuffers2();
+	}*/
 	
     function drawScene() {
 		// clear the viewport
@@ -201,29 +312,15 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 
 		// basic perspective matrix
         mat4.perspective(pMatrix, 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
-
+		
 		// iso camera kinda
         mat4.identity(mvMatrix);
 		mat4.translate(mvMatrix, mvMatrix, [0.0, -2.0, -13.0]); // push in 13, down 2
 		mat4.rotate(mvMatrix, mvMatrix, Math.PI/6, [1, 0, 0]); // pitch 30
 		mat4.rotate(mvMatrix, mvMatrix, Math.PI/6, [0, 1, 0]); // yaw 30
 		
-		/*
-        mvPushMatrix();
-        mat4.rotate(mvMatrix, degToRad(rPoly), [0, 0, 1]);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, polygonVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, polygonVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        setMatrixUniforms();
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, polygonVertexPositionBuffer.numItems);
-        mvPopMatrix();
-		*/
 		drawMeshBuilder(postMeshBuilder);
-		
+		drawLineBuilder(axisIndicatorBuilder);
     }
 
 	// deltaTime: milliseconds since last render
@@ -243,32 +340,17 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 		
 		requestAnimationFrame(doTick);
 	}
-    
-    function changeParam(param, step){
-      if (param == 'numSides'){
-        if ( (step < 0 && numSides > 3 )|| (step > 0 && numSides < 100 ) )
-        {
-          numSides += step;
-          initBuffers();
-          document.getElementById("numSides").innerHTML = numSides;
-        }
-      }
-      else if (param == 'degPerSecond'){
-        degPerSecond = document.getElementById("degPerSecond").value;
-        initBuffers();
-      }
-    }
-
 
     function webGLStart() {
         var canvas = document.getElementById("canvas");
         initGL(canvas);
         initShaders();
-        initBuffers();
 		initPostMeshBuilder();
+		initAxisIndicator();
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
+		bindMouse();
         tick();
     }
 
