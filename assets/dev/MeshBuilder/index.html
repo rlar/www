@@ -74,7 +74,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 			{
 				// doesn't matter which coord prop we use on the event if we're consistent
 				MouseX = event.clientX;
-				MouseY = event.clientY;
+				MouseY = event.clientY;				
 			}
 		});
 	}
@@ -176,8 +176,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
     var pMatrix = mat4.create();
 
     function mvPushMatrix() {
-        var copy = mat4.create();
-        mat4.set(mvMatrix, copy);
+        var copy = mat4.clone(mvMatrix);
         mvMatrixStack.push(copy);
     }
 
@@ -219,10 +218,9 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 	function initAxisIndicator() {
 		axisIndicatorBuilder = new LineBuilder("Axis Indicator");
 		
-        axisIndicatorBuilder.AddSegment( [[0,0,0], [4,0,0]] );
-		axisIndicatorBuilder.AddSegment( [[0,0,0], [0,4,0]] );
-		axisIndicatorBuilder.AddSegment( [[0,0,0], [0,0,4]] );
-		
+        axisIndicatorBuilder.AddSegment( [[0,0,0], [10,0,0]] );
+		axisIndicatorBuilder.AddSegment( [[0,0,0], [0,10,0]] );
+		axisIndicatorBuilder.AddSegment( [[0,0,0], [0,0,10]] );
 		
 		axisIndicatorBuilder.Buffer(gl);
     }
@@ -258,52 +256,6 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 		setMatrixUniforms();
 		gl.drawArrays(gl.TRIANGLES, 0, meshBuilder.numItems);
 	}
-	/*
-	// redo this myself - drawline code from http://internetexception.com/post/2013/02/25/Line-in-WebGL-and-why-you-gonna-do-this-on-your-own.aspx
-	// note the sneaky glELEM.. named parameter
-	function initBuffer2(glBufferType, data) {
-		var buf = gl.createBuffer();
-		gl.bindBuffer(glBufferType, buf);
-		gl.bufferData(glBufferType, data, gl.STATIC_DRAW);
-		return buf;
-	}
-
-	var vbuf;
-	var ibuf;	
-	function initBuffers2(vtx, idx) {
-		vbuf = initBuffer2(gl.ARRAY_BUFFER, vtx);
-		
-		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-	}
-		
-	function unbindBuffers2() {
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-	}
-
-	
-	// todo: drawModellingGnomon
-	function drawLine(){
-		gl.bindBuffer(gl.ARRAY_BUFFER, meshBuilder.vertexBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, meshBuilder.colourBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
-
-		setMatrixUniforms();
-		gl.drawArrays(gl.TRIANGLES, 0, meshBuilder.numItems);
-		
-		
-		var vtx = new Float32Array(
-			[0.0, 0.0, 0.0, 
-			3.0, 0.0, 0.0]
-		);
-		initBuffers2(vtx, idx);
-		gl.lineWidth(1.0);
-		gl.uniform4f(shaderProgram.colorUniform, 0, 0, 0, 1);
-		gl.drawElements(gl.LINES, 2, gl.UNSIGNED_SHORT, 0);
-		unbindBuffers2();
-	}*/
 	
     function drawScene() {
 		// clear the viewport
@@ -314,18 +266,24 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
         mat4.perspective(pMatrix, 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
 		
 		// iso camera kinda
+		mvPushMatrix();
         mat4.identity(mvMatrix);
-		mat4.translate(mvMatrix, mvMatrix, [0.0, -2.0, -13.0]); // push in 13, down 2
+		mat4.translate(mvMatrix, mvMatrix, [0.0, -2.0, -17.0 + 2.0*zoom]); // push in and down
 		mat4.rotate(mvMatrix, mvMatrix, Math.PI/6, [1, 0, 0]); // pitch 30
 		mat4.rotate(mvMatrix, mvMatrix, Math.PI/6, [0, 1, 0]); // yaw 30
 		
 		drawMeshBuilder(postMeshBuilder);
 		drawLineBuilder(axisIndicatorBuilder);
+		
+		mvPopMatrix()
     }
 
 	// deltaTime: milliseconds since last render
     function tick(deltaTime) {
         drawScene();
+		
+		// todo: tickUI
+		$("zoom").text(zoom);
     }
 	
 	// called at 60Hz, render loop
@@ -340,6 +298,13 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 		
 		requestAnimationFrame(doTick);
 	}
+	
+	var zoom = 0;
+	function changeParam(param, step){
+      if (param == 'zoom'){
+        zoom += step;
+      }
+	}
 
     function webGLStart() {
         var canvas = document.getElementById("canvas");
@@ -351,7 +316,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
         gl.enable(gl.DEPTH_TEST);
 
 		bindMouse();
-        tick();
+        doTick();
     }
 
 </script>
@@ -360,9 +325,9 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 
 
 <body onload="webGLStart();">
-    Sides: <span id="numSides">3</span>
-    <input type="button" onclick="changeParam('numSides', 1)" value="Add side">
-    <input type="button" onclick="changeParam('numSides', -1)" value="Remove side">&nbsp;
+    Zoom: <span id="zoom">0</span>
+    <input type="button" onclick="changeParam('zoom', 1)" value="Zoom In">
+    <input type="button" onclick="changeParam('zoom', -1)" value="Zoom Out">&nbsp;
     
     Rotation (deg CCW): 
     <input id="degPerSecond" type="number" step="12" value="90" onmouseup="changeParam('degPerSecond')" onchange="changeParam('degPerSecond')"/><br />
