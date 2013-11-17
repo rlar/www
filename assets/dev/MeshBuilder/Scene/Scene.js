@@ -37,7 +37,6 @@
 	
 	function drawLineBuilder(lineBuilder) 
 	{
-		
 		lineBuilder.Buffer(gl);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuilder.indexBuffer)
 		

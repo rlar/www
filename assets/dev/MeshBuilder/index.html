@@ -16,6 +16,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 <script type="text/javascript" src="./Engine/gl-matrix.js"></script>
 <script type="text/javascript" src="./Engine/webgl-utils.js"></script>
 <script type="text/javascript" src="./Engine/Engine.js"></script>
+<script type="text/javascript" src="./Engine/Underscore.js"></script>
 
 <script type="text/javascript" src="./Scene/LineBuilder.js"></script>
 <script type="text/javascript" src="./Scene/MeshBuilder.js"></script>
@@ -66,6 +67,7 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
       }
 	  else if (param == 'reset'){
 		zoom = 0;
+		rotate = 0;
 	  }
 	}
 	 
@@ -210,9 +212,11 @@ Inspired by slash taken from learnwebgl and that aussie lady from fb
 		// iso camera kinda
 		mvPushMatrix();
 			mat4.identity(mvMatrix);
-			mat4.translate(mvMatrix, mvMatrix, [0.0, -2.0, -17.0 + 2.0*zoom]); // push in and down
+			mat4.translate(mvMatrix, mvMatrix, [Input.pan, -2.0, -17.0 + 2.0*Input.zoom]); // pan, push in and down
 			mat4.rotate(mvMatrix, mvMatrix, Math.PI/6, [1, 0, 0]); // pitch 30
-			mat4.rotate(mvMatrix, mvMatrix, Utils.degToRad(30 + rotate), [0, 1, 0]); // yaw 30 + rotate
+			mat4.rotate(mvMatrix, mvMatrix, Utils.degToRad(30 + Input.rotate), [0, 1, 0]); // yaw 30 + rotate
+			mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, 0.0]); // pan
+			// need to do: rotate this leftwards pan by our rotation angle.
 			
 			drawLineBuilder(gridBuilder);
 			
