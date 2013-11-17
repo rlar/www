@@ -1,4 +1,5 @@
-function LineBuilder(name){
+function LineBuilder(name)
+{
 	this.name = name;
 	
 	// properties for each vertex, beginning with position
@@ -14,8 +15,9 @@ function LineBuilder(name){
 
 // builds a line segment from two points
 // vCoords[2]: array of two vector3 objects
-LineBuilder.prototype.AddSegment = function(vCoords) {
-
+// colour[4]: segment colour
+LineBuilder.prototype.AddSegment = function(vCoords, colour) 
+{
 	// Build a line from two vertices
 	for (var i = 0; i < 2; i++)
 		for (var j = 0; j < 3; j++)
@@ -34,7 +36,8 @@ LineBuilder.prototype.AddSegment = function(vCoords) {
 }
 
 // gl: WebGL context
-LineBuilder.prototype.Buffer = function(gl) {
+LineBuilder.prototype.Buffer = function(gl) 
+{
 //var idx = new Uint16Array([0, 1]);
 //		var ibuf = gl.initBuffer(gl.ELEMENT_ARRAY_BUFFER, idx);
 	this.indexBuffer = gl.initBuffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices));

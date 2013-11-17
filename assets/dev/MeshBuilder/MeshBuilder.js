@@ -1,4 +1,5 @@
-function MeshBuilder(name){
+function MeshBuilder(name)
+{
 	this.name = name;
 	
 	// properties for each vertex, beginning with position
@@ -17,7 +18,8 @@ function MeshBuilder(name){
 // todo add vSegmentNumber, if one is set to -1 then use the other
 // vScale is width, height, depth scaling of the fence lumber, but not change start or end
 // vTilt is xTilt, yaw, zTilt // todo implement with the new gl lib?
-MeshBuilder.prototype.AddFence = function(vStartLocation,vEndLocation,vSegmentLength) {
+MeshBuilder.prototype.AddFence = function(vStartLocation,vEndLocation,vSegmentLength) 
+{
 
 	// Declare builder brush vertices
 	postVertices = ( 
@@ -51,8 +53,8 @@ MeshBuilder.prototype.AddFence = function(vStartLocation,vEndLocation,vSegmentLe
 // vLocation is bottom left corner
 // vScale is width, height, depth
 // vTilt is xTilt, yaw, zTilt // todo implement with the new gl lib?
-MeshBuilder.prototype.AddFencePost = function(vLocation,vScale) {
-
+MeshBuilder.prototype.AddFencePost = function(vLocation,vScale) 
+{
 	// Declare builder brush vertices
 	postVertices = ( 
 			[ [0.0, 0.0, 0.0], 
@@ -85,8 +87,8 @@ MeshBuilder.prototype.AddFencePost = function(vLocation,vScale) {
 // 		the front described clockwise from the front bottom left, 
 //		followed by the back from the back bottom left
 // vCoords[4]: array of four vector objects 
-MeshBuilder.prototype.AddRectPrism = function(vCoords) {
-
+MeshBuilder.prototype.AddRectPrism = function(vCoords) 
+{
 	// +4 means its a back face coord, 0-3 run from bottom left counter clockwise
 	this.AddQuad( [vCoords[0],   vCoords[1],   vCoords[2],   vCoords[3]] );   // front
 	this.AddQuad( [vCoords[0+4], vCoords[1+4], vCoords[1],   vCoords[0]] );   // left
@@ -98,15 +100,16 @@ MeshBuilder.prototype.AddRectPrism = function(vCoords) {
 
 // builds a quad from four corners, listen counter clockwise
 // vCoords[4]: array of four vector objects (with the properties x, y, z)
-MeshBuilder.prototype.AddQuad = function(vCoords) {
+MeshBuilder.prototype.AddQuad = function(vCoords) 
+{
 	this.AddTri( [vCoords[0], vCoords[1], vCoords[2]] );
 	this.AddTri( [vCoords[0], vCoords[2], vCoords[3]] );
 }
 
 // builds a tri from three corners, listed counter clockwise
 // vCoords[3]: array of three vector objects (with the properties x, y, z)
-MeshBuilder.prototype.AddTri = function(vCoords) {
-
+MeshBuilder.prototype.AddTri = function(vCoords) 
+{
 	// Build a quad from two triangles
 	for (var i = 0; i < 3; i++)
 		for (var j = 0; j < 3; j++)
