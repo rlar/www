@@ -18,20 +18,16 @@ function LineBuilder(name)
 // colour[4]: segment colour
 LineBuilder.prototype.AddSegment = function(vCoords, colour) 
 {
-	// Build a line from two vertices
-	for (var i = 0; i < 2; i++)
-		for (var j = 0; j < 3; j++)
-			this.vertices = this.vertices.concat( vCoords[i][j] );
+	$.merge(this.vertices, vCoords[0]);
+	$.merge(this.vertices, vCoords[1]);
 	
-	this.colours = this.colours.concat(
-	  [1.0, 1.0, 1.0, 1.0,
-	   1.0, 1.0, 1.0, 1.0]
-	);
+	$.merge(this.colours, colour);	
+	$.merge(this.colours, colour);	
 	
 	// numItems contains the index just past the OLD end of the vertex array,
 	// i.e. the first of the two vertices we just added
-	this.indices = this.indices.concat( this.numItems );
-	this.indices = this.indices.concat( this.numItems+1 );
+	this.indices.push( this.numItems );
+	this.indices.push( this.numItems+1 );
 	this.numItems += 2;
 }
 
