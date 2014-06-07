@@ -1,7 +1,7 @@
 <html>
 
 <head>
-<title>Rotagon</title>
+<title>Radial</title>
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
@@ -32,10 +32,9 @@
     }
 </script>
 
-
 <script type="text/javascript">
 
-	
+
     var gl;
 
     function initGL(canvas) {
@@ -49,7 +48,6 @@
             alert("Could not initialise WebGL, sorry :-(");
         }
     }
-
 
     function getShader(gl, id) {
         var shaderScript = document.getElementById(id);
@@ -86,7 +84,6 @@
         return shader;
     }
 
-
     var shaderProgram;
 
     function initShaders() {
@@ -114,7 +111,6 @@
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
     }
 
-
     var mvMatrix = mat4.create();
     var mvMatrixStack = [];
     var pMatrix = mat4.create();
@@ -132,17 +128,14 @@
         mvMatrix = mvMatrixStack.pop();
     }
 
-
     function setMatrixUniforms() {
         gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
         gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
     }
 
-
     function degToRad(degrees) {
         return degrees * Math.PI / 180;
     }
-
 
     var polygonVertexPositionBuffer;
     var polygonVertexColorBuffer;
@@ -197,7 +190,6 @@
     }
 
 
-
     var rPoly = 0;
 
     function drawScene() {
@@ -211,19 +203,18 @@
         mat4.translate(mvMatrix, [0.0, 0.0, -4.0]);
 
         mvPushMatrix();
-			mat4.rotate(mvMatrix, degToRad(rPoly), [0, 0, 1]);
+mat4.rotate(mvMatrix, degToRad(rPoly), [0, 0, 1]);
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
-			gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, polygonVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
+gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, polygonVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
-			gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, polygonVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
+gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, polygonVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-			setMatrixUniforms();
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, polygonVertexPositionBuffer.numItems);
+setMatrixUniforms();
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, polygonVertexPositionBuffer.numItems);
         mvPopMatrix();
     }
-
 
     var lastTime = 0;
     var degPerSecond = 90;
@@ -240,7 +231,7 @@
     function tick() {
         animate();
         drawScene();
-		requestAnimFrame(tick);
+requestAnimFrame(tick);
     }
     
     function changeParam(param, step){
@@ -258,65 +249,201 @@
       }
     }
 
-	function protoDrawWedge(canvas)
+    // returns an object with the properties
+    // vTopleft: the coords of the top left of the text-worthy area
+    // TODO figure out what to return for the various slices. like for when we do rotated text
+    // Maybe we just return (origin, rotation, width, height) ?
+	var Wedge;
+    function initWedge(canvas)
+    {
+        var _vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
+        var _sSideMargin = .05;
+        var _sHalfThetaRads =  Math.PI/13;
+        Wedge = 
+        {
+            vOrigin : _vOrigin,
+            sSideMargin : _sSideMargin,
+            sHalfThetaRads : _sHalfThetaRads,
+            sArcRadiusLeft : -_vOrigin.x + canvas.width * _sSideMargin, 
+            sArcRadiusRight : -_vOrigin.x + canvas.width * (1-_sSideMargin)
+        };
+    }
+	
+    function drawBigWedge(context)
+    {
+        context.beginPath();
+
+        // --- Wedge ---
+        // should be defined by: 
+        initWedge(canvas);
+
+        // this is a const param for canvas arc drawing
+        var bClockwise = false;
+
+        // left wedge
+        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusLeft, Wedge.sHalfThetaRads,-Wedge.sHalfThetaRads, !bClockwise)
+
+        // right wedge, implicitly connects top of two arcs
+        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusRight, -Wedge.sHalfThetaRads,Wedge.sHalfThetaRads, bClockwise);
+
+		// explicitly connects bottom of two arcs
+        context.closePath();
+		
+        context.closePath();
+        context.fillStyle="white";
+        context.fill();
+
+         // Set line stroke props
+        context.strokeStyle = "#ff0000";
+        context.lineWidth   = 5;
+        context.stroke();
+    }
+
+/*    {
+        context.beginPath();
+
+        // --- Wedge ---
+        // should be defined by: 
+        var sHalfThetaRads = Math.PI/13;
+
+        // our arcs are centered about -280, 450 in 1600x900 resolution
+        var sArcRadius = (280 + 1450);
+        var vTopleft = { x: canvas.width * 0.09375 , y: .42 * canvas.height }; // this should be in the line from the topright to th origin
+        var vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
+
+        // WAIT, HOLY SHIT. we should let the arc closure figure this out for us!
+         
+        // wedge top left
+        context.moveTo(vTopleft.x, vTopleft.y);
+          
+        // wedge left arc, bottom to top
+        //context.arc(vOrigin.x, vOrigin.y, sArcRadius * .7, sHalfThetaRads * .25, -sHalfThetaRads * .25 )
+        
+        // wedge right arc
+        //context.arc(-.0875 * canvas.width, .25 * canvas.height, sOuterArcRadius,-sHalfThetaRads,sHalfThetaRads)
+        context.arc(vOrigin.x, vOrigin.y, sArcRadius,-sHalfThetaRads,sHalfThetaRads)
+
+        // point relative to this arc is (origin) + currRadius *
+
+        context.lineTo(vTopleft.x, canvas.height - vTopleft.y);
+        //context.arc(origin.x, origin.y, sInnerRadius,-Math.PI/13,Math.PI/13)
+        //context.lineTo(150/2,(1-.42)*450);
+
+      
+
+        // Could try to gracefully (roundedly) close the arc too
+        context.closePath();
+        context.fillStyle="red";
+        context.fill();
+
+         // Set line stroke props
+        //context.strokeStyle = "#000000";
+        //context.lineWidth   = 5;
+        //context.stroke();
+
+        // TODO go over it and stroke it?
+        return vTopleft;
+
+    }*/
+
+    // boss level animation:
+    /*
+    when the third rung choice is made (the project or whatever), the whole wedge (big size) fills up with the clear colour and then the project information
+    fades into the middle there.
+    - can we play with opacity on a div with css? i gotta think
+    */
+
+    // Cell Division
+    // picture this like a spreadsheet, with vertically merged cells, in polar coordinates.
+    var nRings = 3;
+    var nRungsPerRing = [1, 3, 4]; // [rob], [projectSource1, projSrc2, projSrc3], [pName1, pName2, ..]
+	
+	function lerp(x, y, t)
 	{
-		var ctx=canvas.getContext("2d");
-		
-		ctx.beginPath();
-
-		// --- Wedge ---
-		// should be defined by: 
-		var sHalfThetaRads = Math.PI/13;
-
-		// our arcs are centered about -280, 450 in 1600x900 resolution
-
-		
-		var sOuterArcRadius = (280 + 1450);
-
-		var sInnerRadius = sOuterArcRadius * .20;
-
-		var vTopleft = { x: canvas.width * 0.09375 , y: .42 * canvas.height };
-		var origin = { x : -.175 * canvas.width , y : canvas.height / 2 }
-
-		// wedge top left
-		ctx.moveTo(vTopleft.x, vTopleft.y);
-
-		// wedge right arc
-		//ctx.arc(-.0875 * canvas.width, .25 * canvas.height, sOuterArcRadius,-sHalfThetaRads,sHalfThetaRads)
-		ctx.arc(origin.x, origin.y, sOuterArcRadius,-sHalfThetaRads,sHalfThetaRads)
-
-		ctx.lineTo(vTopleft.x, canvas.height - vTopleft.y);
-		//ctx.arc(origin.x, origin.y, sInnerRadius,-Math.PI/13,Math.PI/13)
-		//ctx.lineTo(150/2,(1-.42)*450);
-
-        // Could try to gracefully close the arc too
-		ctx.closePath();
-		ctx.stroke();
-		ctx.fillStyle="red";
-		ctx.fill();
-
-		// --- Text --- 
-		var text = "Rob"
-		var radius = 100;
-		 ctx.fillStyle = "black"; // font color to write the text with
-		  var font = "bold " + radius +"px serif";
-		  ctx.font = font;
-		  ctx.textBaseline = "top";
-		  ctx.fillText(text, vTopleft.x, vTopleft.y);
-
-		// --- Rotated text ---
-		var labelXposition = 200;
-
-		ctx.save();
-		 //ctx.translate(newx, newy);
-		 ctx.rotate(Math.PI/20);
-		 ctx.textAlign = "left"; // or "center"
-		 ctx.fillText("Your Label Here", labelXposition, 0);
-		ctx.restore();
+		return x + t * (y-x);
 	}
 
+    function lerpWedgeRadius(t)
+    {
+        return lerp(Wedge.sArcRadiusLeft, Wedge.sArcRadiusRight, t);
+    }
+
+    function getRingRadius(iRingIndex, bIsLeftRadius)
+	
+	// x = rings, y = rungs. think tree trunk
+    function drawWedgeTile(context, iRingIndex, iRungIndex)
+    {
+        context.beginPath();
+
+        // --- Wedge ---
+        // should be defined by: 
+        var sHalfThetaRads = Math.PI/13;
+        var vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
+        var sArcRadius = -vOrigin.x + .6 * canvas.width;
+
+        // this is a const param for canvas arc drawing
+        var bClockwise = false;
+
+		// left wedge
+        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, lerpWedgeRadius(.333333333),Wedge.sHalfThetaRads,-Wedge.sHalfThetaRads, !bClockwise)
+
+        // right wedge, implicitly connects top of two arcs
+        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, lerpWedgeRadius(.666666666),-Wedge.sHalfThetaRads,Wedge.sHalfThetaRads, bClockwise);
+
+		// explicitly connects bottom of two arcs
+        context.closePath();
+		
+		// fill
+        context.fillStyle="white";
+        context.fill();
+
+         // Set line stroke props
+        context.strokeStyle = "#00ff00";
+        context.lineWidth   = 5;
+        context.stroke();
+    }
+
+function protoDrawWedge(canvas)
+{
+var context=canvas.getContext("2d");
+
+var vTopleft = drawBigWedge(context);
+
+     drawWedgeTile(context, 0, 0); // leftmost wedge
+        //drawWedgeTile(context, 1, 2); // bottomright wedge
+
+// --- Text --- 
+var text = "Rob"
+var radius = 100;
+context.fillStyle = "black"; // font color to write the text with
+  var font = "bold " + radius +"px serif";
+  context.font = font;
+  context.textBaseline = "top";
+  //context.fillText(text, vTopleft.x, vTopleft.y);
+
+// --- Rotated text ---
+var labelXposition = 200;
+
+context.save();
+          // TODO check this link out for one way to wrap text more pleasingly for the right-side arcs: http://jsfiddle.net/4n5pA/3/
+
+         // use the two lines below to transform the text render origin!
+//context.translate(newx, newy);
+//context.rotate(Math.PI/20);
+context.textAlign = "left"; // or "center"
+// context.fillText("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum", labelXposition, 0);
+context.restore();
+}
+
+    function clearColour(canvas, colour)
+    {
+        var context = canvas.getContext("2d");
+        context.fillStyle = colour;
+        context.fillRect(0,0,canvas.width, canvas.height);
+    }
+
     function main() {
-	/* old rotagon code 
+/* old rotagon code 
         var canvas = document.getElementById("lesson03-canvas");
         initGL(canvas);
         initShaders()
@@ -326,24 +453,26 @@
         gl.enable(gl.DEPTH_TEST);
 
         tick();*/
-		
-		var canvas = document.getElementById("canvas");
-		protoDrawWedge(canvas);
-		
-		/*
-		1 - scale up the wedge
-		2 - functionalize drawing wedges (iRingIndex, iVerticalIndex)
-		3 - the drawWedge returns the textarea that can be used within it?
-		4 - text in wedges?
-		5 - anim wedge spinning
-		*/
+
+var canvas = document.getElementById("canvas");
+
+    
+        clearColour(canvas, "#000000");
+protoDrawWedge(canvas);
+
+/*
+1 - scale up the wedge
+2 - functionalize drawing wedges (iRingIndex, iVerticalIndex)
+3 - the drawWedge returns the textarea that can be used within it?
+4 - text in wedges?
+5 - anim wedge spinning
+*/
     }
 
-	
+
 </script>
 
 </head>
-
 
 <body onload="main();">
     <canvas id="canvas" style="border: 1px solid;" width="1600" height="900"></canvas>
