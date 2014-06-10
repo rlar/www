@@ -1,239 +1,13 @@
 <html>
-
 <head>
 <title>Radial</title>
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
-
+<script type="text/javascript" src="jquery-min-1.7.js"></script>
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
 
-<script id="shader-fs" type="x-shader/x-fragment">
-    precision mediump float;
-
-    varying vec4 vColor;
-
-    void main(void) {
-        gl_FragColor = vColor;
-    }
-</script>
-
-<script id="shader-vs" type="x-shader/x-vertex">
-    attribute vec3 aVertexPosition;
-    attribute vec4 aVertexColor;
-
-    uniform mat4 uMVMatrix;
-    uniform mat4 uPMatrix;
-
-    varying vec4 vColor;
-
-    void main(void) {
-        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-        vColor = aVertexColor;
-    }
-</script>
-
 <script type="text/javascript">
 
-
-    var gl;
-
-    function initGL(canvas) {
-        try {
-            gl = canvas.getContext("experimental-webgl");
-            gl.viewportWidth = canvas.width;
-            gl.viewportHeight = canvas.height;
-        } catch (e) {
-        }
-        if (!gl) {
-            alert("Could not initialise WebGL, sorry :-(");
-        }
-    }
-
-    function getShader(gl, id) {
-        var shaderScript = document.getElementById(id);
-        if (!shaderScript) {
-            return null;
-        }
-
-        var str = "";
-        var k = shaderScript.firstChild;
-        while (k) {
-            if (k.nodeType == 3) {
-                str += k.textContent;
-            }
-            k = k.nextSibling;
-        }
-
-        var shader;
-        if (shaderScript.type == "x-shader/x-fragment") {
-            shader = gl.createShader(gl.FRAGMENT_SHADER);
-        } else if (shaderScript.type == "x-shader/x-vertex") {
-            shader = gl.createShader(gl.VERTEX_SHADER);
-        } else {
-            return null;
-        }
-
-        gl.shaderSource(shader, str);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            alert(gl.getShaderInfoLog(shader));
-            return null;
-        }
-
-        return shader;
-    }
-
-    var shaderProgram;
-
-    function initShaders() {
-        var fragmentShader = getShader(gl, "shader-fs");
-        var vertexShader = getShader(gl, "shader-vs");
-
-        shaderProgram = gl.createProgram();
-        gl.attachShader(shaderProgram, vertexShader);
-        gl.attachShader(shaderProgram, fragmentShader);
-        gl.linkProgram(shaderProgram);
-
-        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-            alert("Could not initialise shaders");
-        }
-
-        gl.useProgram(shaderProgram);
-
-        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-
-        shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-        gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
-        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-    }
-
-    var mvMatrix = mat4.create();
-    var mvMatrixStack = [];
-    var pMatrix = mat4.create();
-
-    function mvPushMatrix() {
-        var copy = mat4.create();
-        mat4.set(mvMatrix, copy);
-        mvMatrixStack.push(copy);
-    }
-
-    function mvPopMatrix() {
-        if (mvMatrixStack.length == 0) {
-            throw "Invalid popMatrix!";
-        }
-        mvMatrix = mvMatrixStack.pop();
-    }
-
-    function setMatrixUniforms() {
-        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-    }
-
-    function degToRad(degrees) {
-        return degrees * Math.PI / 180;
-    }
-
-    var polygonVertexPositionBuffer;
-    var polygonVertexColorBuffer;
-/*
-    var squareVertexPositionBuffer;
-    var squareVertexColorBuffer;
-*/
-  
-    var numSides = 3;
-    function initBuffers() {
-        polygonVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
-
-        // #rob 2*180
-        var degPerVertex = 2*180/(numSides);
-        var vertices = [];
-        
-        
-         // draw polygon as a set of triangles, each with one vertex at
-         // the origin and the other two on an adjacent outer edge
-        for (var i=0; i < numSides; i++) {
-          vertices = vertices.concat(
-            [
-              // origin
-              0.0,  0.0,  0.0, 
-              // first outer vertex
-              Math.cos(degToRad(i*degPerVertex)),  Math.sin(degToRad(i*degPerVertex)),  0.0,
-              // second (clockwise) outer vertex              
-              Math.cos(degToRad((i+1)*degPerVertex)),  Math.sin(degToRad((i+1)*degPerVertex)),  0.0,  
-            ]
-           ); 
-        }
-        
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        polygonVertexPositionBuffer.itemSize = 3;
-        polygonVertexPositionBuffer.numItems = 3*numSides;
-        polygonVertexColorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
-        
-        var colors = [];
-        for (var i=0; i < numSides; i++) {
-            colors = colors.concat(
-              [0.0, 0.0, 0.0, 1.0,
-               1.0, 1.0, 1.0, 1.0,
-               1.0, 1.0, 1.0, 1.0]
-            );
-        }
-        
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-        polygonVertexColorBuffer.itemSize = 4;
-        polygonVertexColorBuffer.numItems = 3*numSides;
-    }
-
-
-    var rPoly = 0;
-
-    function drawScene() {
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-
-        mat4.identity(mvMatrix);
-
-        mat4.translate(mvMatrix, [0.0, 0.0, -4.0]);
-
-        mvPushMatrix();
-mat4.rotate(mvMatrix, degToRad(rPoly), [0, 0, 1]);
-
-gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexPositionBuffer);
-gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, polygonVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-gl.bindBuffer(gl.ARRAY_BUFFER, polygonVertexColorBuffer);
-gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, polygonVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-setMatrixUniforms();
-gl.drawArrays(gl.TRIANGLE_STRIP, 0, polygonVertexPositionBuffer.numItems);
-        mvPopMatrix();
-    }
-
-    var lastTime = 0;
-    var degPerSecond = 90;
-    function animate() {
-        var timeNow = new Date().getTime();
-        if (lastTime != 0) {
-            var elapsed = timeNow - lastTime;
-
-            rPoly += (degPerSecond * elapsed) / 1000.0;
-        }
-        lastTime = timeNow;
-    }
-
-    function tick() {
-        animate();
-        drawScene();
-requestAnimFrame(tick);
-    }
-    
     function changeParam(param, step){
       if (param == 'numSides'){
         if ( (step < 0 && numSides > 3 )|| (step > 0 && numSides < 100 ) )
@@ -249,42 +23,158 @@ requestAnimFrame(tick);
       }
     }
 
-    // returns an object with the properties
-    // vTopleft: the coords of the top left of the text-worthy area
-    // TODO figure out what to return for the various slices. like for when we do rotated text
-    // Maybe we just return (origin, rotation, width, height) ?
+    // Wedge division props
+     // picture this like a spreadsheet, with vertically merged cells, in polar coordinates.
+    var nRings = 3;
+    var nRungsPerRing = [1, 3, 4]; // [rob], [projectSource1, projSrc2, projSrc3], [pName1, pName2, ..]
+    
+    function lerp(x, y, t)
+    {
+        return x + t * (y-x);
+    }
+
+    // Wedge tunables
+    // todo: figure out how to calculate the usable text area in a wedge
 	var Wedge;
-    function initWedge(canvas)
+    function initWedge()
     {
         var _vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
-        var _sSideMargin = .05;
-        var _sHalfThetaRads =  Math.PI/13;
+        var _sSideMargin = .03;
+        var _sHalfThetaRads =  Math.PI/12.2;
+
+        // THE BIG DECISION, TODO ROB
+        // making margins by divergence this way will always look awkward and withthe gaps between cells increasing.
+        // to avoid this, maybe we change entirely: instead, draw the margin on top with black. then, the margin will have uniform thickness.
+        // BUT its hacky and will take sneaking to look right. 
+        // BRANCH IDEA but leave it how it is for prototyping the animation n stuff
+        var _sCellMargin = .00; // setting this > 0 kinda works but i might try a fixed pixel margin, this one gets big
+        var _sCellMarginFixedHorz = 10;
+        var _sCellMarginFixedVert = .0086;
+
         Wedge = 
         {
             vOrigin : _vOrigin,
             sSideMargin : _sSideMargin,
             sHalfThetaRads : _sHalfThetaRads,
             sArcRadiusLeft : -_vOrigin.x + canvas.width * _sSideMargin, 
-            sArcRadiusRight : -_vOrigin.x + canvas.width * (1-_sSideMargin)
+            sArcRadiusRight : -_vOrigin.x + canvas.width * (1-_sSideMargin),
+            sGetRingRadius : function (iRingIndex, bIsLeftRadius)
+            {
+                iRingIndex += bIsLeftRadius ? 0 : 1;
+                var blend = (iRingIndex/nRings) + (_sCellMargin * (bIsLeftRadius ? 1 : -1)); // + _sCellMargin * bIsLeftRadius ? 1 : -1;
+                return lerp(Wedge.sArcRadiusLeft, Wedge.sArcRadiusRight, blend) + _sCellMarginFixedHorz * (bIsLeftRadius ? 1 : -1);
+            },
+            sGetRungTheta : function (iRingIndex, iRungIndex, bIsTopTheta)
+            {
+                iRungIndex += bIsTopTheta ? 0 : 1;
+                var blend = (iRungIndex / nRungsPerRing[iRingIndex]) + (_sCellMargin * (bIsTopTheta ? 1 : -1));
+                return lerp(-Wedge.sHalfThetaRads, Wedge.sHalfThetaRads, blend) + _sCellMarginFixedVert * (bIsTopTheta ? 1 : -1);
+            }
         };
     }
-	
-    function drawBigWedge(context)
-    {
-        context.beginPath();
 
-        // --- Wedge ---
-        // should be defined by: 
-        initWedge(canvas);
+    // time is the animation parameter, for now anyways. TODO figure out animation system for how far along rendering the wedge we are.
+    // maybe we should do a deltatime and bResetWedge params? and then based on deltatime, can animate hw much of the wedge to draw this tick around.
+
+    var AnimProps;  
+    function initAnimProps()
+    {
+        AnimProps =
+        {
+            // main tunable(s)
+            timePerSide : [1500,2000,2000,2000], // how long the "bead" takes to reach the end of this side, millisecs
+
+            // transient(s)
+            currSideIndex : 0, // (0: left arc, 3: botline, clockwise) - helper for the animation switch ? todo rob might remove
+            time : 0
+        };
+    }
+
+    function tickDrawBigWedge(deltatime)
+    {
+        AnimProps.time += deltatime;
+
+        // so how do we parameterize drawing the wedge?
+        /*
+            left arc animates in,
+            top line animates in sparking, the sparks will bounce off the bottom line once which will give illusion of wedge
+            right arc animates in
+            bot line animates in, maybe the welding point can burn red at this point or something.
+
+            so we need an animation timeline. think curves.
+            time to draw each of the four sides
+            currSide = (0: left arc, 3: botline, clockwise)
+            timePerSide : [2,2,2,2],
+            currProgress : 0;
+        */
+
+        context.beginPath();
 
         // this is a const param for canvas arc drawing
         var bClockwise = false;
 
-        // left wedge
-        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusLeft, Wedge.sHalfThetaRads,-Wedge.sHalfThetaRads, !bClockwise)
+        // AnimProps.time is how far along in total the anim is, this struct helps us break down that time and draw each wedge side
+        var localAnimProps = 
+        {
+        	timeRemaining : AnimProps.time, 
+        	sideIndex : 0,
+        	blendRatio : 0
+        };
 
-        // right wedge, implicitly connects top of two arcs
-        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusRight, -Wedge.sHalfThetaRads,Wedge.sHalfThetaRads, bClockwise);
+        // call this function once per side until it returns false (which means the anim is done, draw no more sides)
+        function updateLocalAnimProps(localAnimProps)
+        {
+        	if (localAnimProps.timeRemaining <= 0)
+        	{
+        		// nothing left to draw, out of anim!
+        		return false;
+        	}
+
+        	if (localAnimProps.timeRemaining >= AnimProps.timePerSide[localAnimProps.sideIndex])
+        	{
+        		// this side is done drawing, no blend
+        		localAnimProps.blendRatio = 1;
+        	}
+        	else 
+        	{
+        		// this side is not yet done drawing, blend
+        		localAnimProps.blendRatio = localAnimProps.timeRemaining / AnimProps.timePerSide[localAnimProps.sideIndex];
+        	}
+
+        	localAnimProps.timeRemaining -= AnimProps.timePerSide[localAnimProps.sideIndex];
+        	localAnimProps.sideIndex++;
+
+        	return true;
+        }
+
+        // alternative anim: can we just lerp the burning out of the top line, and then the two arcs? we were thinking about having the other
+        // tiles burn in similarly, then we can fill the whole thing up with the two arcs adn only lerp the one param. the sparks could look damn good doing that too
+
+        // how abot this: the light burns out the top bar only, and then burns down the two arcs. the sparks can still come out as the tracer burns the sides.
+        // as the arcs fill in from top to bottom, so does the white background.
+        // the important part is that as the sparks start at the top, they should bounce off the bottoms of the wedges, but just ones. this will suggest the line
+        // without drawing it until the end. could be cool, but tricky. collision in particle system.
+
+        // loop: call updateLocalAnimProps to get the blend ratio (i.e. the ratio of the current side to draw, in 0..1),
+        // function returns false if this side of the wedge should not be drawn (i.e. its too early)
+        var bStillAnimating = true;
+
+        bStillAnimating &= updateLocalAnimProps(localAnimProps);
+        if (bStillAnimating)
+        {
+        	// left wedge TODO interpolate, gotta use the blend param here and lerp
+        	var topTheta = lerp(Wedge.sHalfThetaRads, -Wedge.sHalfThetaRads, localAnimProps.blendRatio);
+
+       		context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusLeft, Wedge.sHalfThetaRads,topTheta, !bClockwise)
+        }
+        
+        bStillAnimating &= updateLocalAnimProps(localAnimProps);
+        if (bStillAnimating)
+        {
+        	// god damnit, i have to actually do the top manually now. shiit.
+        	// right wedge, implicitly connects top of two arcs
+        	context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusRight, -Wedge.sHalfThetaRads,Wedge.sHalfThetaRads, bClockwise);
+        }
 
 		// explicitly connects bottom of two arcs
         context.closePath();
@@ -299,79 +189,45 @@ requestAnimFrame(tick);
         context.stroke();
     }
 
-/*    {
-        context.beginPath();
+    
+    var lastTime = 0;
+    function step() {
+        var timeNow = new Date().getTime();
+        if (lastTime != 0) {
+            var deltatime = timeNow - lastTime;
+        }
+        lastTime = timeNow;
 
-        // --- Wedge ---
-        // should be defined by: 
-        var sHalfThetaRads = Math.PI/13;
+        return deltatime;
+    }
 
-        // our arcs are centered about -280, 450 in 1600x900 resolution
-        var sArcRadius = (280 + 1450);
-        var vTopleft = { x: canvas.width * 0.09375 , y: .42 * canvas.height }; // this should be in the line from the topright to th origin
-        var vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
+    function tick() 
+    {
+        clearColour("#000000");
 
-        // WAIT, HOLY SHIT. we should let the arc closure figure this out for us!
-         
-        // wedge top left
-        context.moveTo(vTopleft.x, vTopleft.y);
-          
-        // wedge left arc, bottom to top
-        //context.arc(vOrigin.x, vOrigin.y, sArcRadius * .7, sHalfThetaRads * .25, -sHalfThetaRads * .25 )
-        
-        // wedge right arc
-        //context.arc(-.0875 * canvas.width, .25 * canvas.height, sOuterArcRadius,-sHalfThetaRads,sHalfThetaRads)
-        context.arc(vOrigin.x, vOrigin.y, sArcRadius,-sHalfThetaRads,sHalfThetaRads)
+        var deltatime = step();
+        tickDrawBigWedge(deltatime);
 
-        // point relative to this arc is (origin) + currRadius *
+        requestAnimFrame(tick);
+    }
 
-        context.lineTo(vTopleft.x, canvas.height - vTopleft.y);
-        //context.arc(origin.x, origin.y, sInnerRadius,-Math.PI/13,Math.PI/13)
-        //context.lineTo(150/2,(1-.42)*450);
+    function demoWedgeAnimation()
+    {
+        initAnimProps();
+        step(); // Have to set the first lastTime so that tick gets a real deltaTime
+        tick();
 
-      
-
-        // Could try to gracefully (roundedly) close the arc too
-        context.closePath();
-        context.fillStyle="red";
-        context.fill();
-
-         // Set line stroke props
-        //context.strokeStyle = "#000000";
-        //context.lineWidth   = 5;
-        //context.stroke();
-
-        // TODO go over it and stroke it?
-        return vTopleft;
-
-    }*/
+    }
 
     // boss level animation:
     /*
     when the third rung choice is made (the project or whatever), the whole wedge (big size) fills up with the clear colour and then the project information
     fades into the middle there.
-    - can we play with opacity on a div with css? i gotta think
+    - can we play with opacity on a div with css? i gotta think so
     */
 
-    // Cell Division
-    // picture this like a spreadsheet, with vertically merged cells, in polar coordinates.
-    var nRings = 3;
-    var nRungsPerRing = [1, 3, 4]; // [rob], [projectSource1, projSrc2, projSrc3], [pName1, pName2, ..]
-	
-	function lerp(x, y, t)
-	{
-		return x + t * (y-x);
-	}
-
-    function lerpWedgeRadius(t)
-    {
-        return lerp(Wedge.sArcRadiusLeft, Wedge.sArcRadiusRight, t);
-    }
-
-    function getRingRadius(iRingIndex, bIsLeftRadius)
-	
-	// x = rings, y = rungs. think tree trunk
-    function drawWedgeTile(context, iRingIndex, iRungIndex)
+	// Rings like a tree trunk, rungs like a ladder. x and y indices.
+    function drawWedgeTile(iRingIndex, iRungIndex, sOpacity)
     {
         context.beginPath();
 
@@ -381,14 +237,20 @@ requestAnimFrame(tick);
         var vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
         var sArcRadius = -vOrigin.x + .6 * canvas.width;
 
-        // this is a const param for canvas arc drawing
+        // "Consts"
         var bClockwise = false;
+        var bIsLeftRadius = true;
+        var bIsTopTheta = true;
 
+        var leftRadius = Wedge.sGetRingRadius(iRingIndex, bIsLeftRadius)
+        var rightRadius = Wedge.sGetRingRadius(iRingIndex, !bIsLeftRadius) 
+        var topTheta = Wedge.sGetRungTheta(iRingIndex, iRungIndex, bIsTopTheta);
+        var bottomTheta = Wedge.sGetRungTheta(iRingIndex, iRungIndex, !bIsTopTheta);
 		// left wedge
-        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, lerpWedgeRadius(.333333333),Wedge.sHalfThetaRads,-Wedge.sHalfThetaRads, !bClockwise)
+        context.arc( Wedge.vOrigin.x, Wedge.vOrigin.y, leftRadius, bottomTheta, topTheta, !bClockwise)
 
         // right wedge, implicitly connects top of two arcs
-        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, lerpWedgeRadius(.666666666),-Wedge.sHalfThetaRads,Wedge.sHalfThetaRads, bClockwise);
+        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, rightRadius, topTheta, bottomTheta, bClockwise);
 
 		// explicitly connects bottom of two arcs
         context.closePath();
@@ -400,73 +262,147 @@ requestAnimFrame(tick);
          // Set line stroke props
         context.strokeStyle = "#00ff00";
         context.lineWidth   = 5;
+     //   context.stroke();
+    }
+
+    function drawWedgeTileHighlight(iRingIndex, iRungIndex)
+    {
+        context.beginPath();
+
+        // todo rob obviously replace this horrible cut and paste code, but its pre-vis!
+
+        // --- Wedge ---
+        // should be defined by: 
+        var sHalfThetaRads = Math.PI/13;
+        var vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
+        var sArcRadius = -vOrigin.x + .6 * canvas.width;
+
+        // "Consts"
+        var bClockwise = false;
+        var bIsLeftRadius = true;
+        var bIsTopTheta = true;
+
+        var leftRadius = Wedge.sGetRingRadius(iRingIndex, bIsLeftRadius)
+        var rightRadius = Wedge.sGetRingRadius(iRingIndex, !bIsLeftRadius) 
+        var topTheta = Wedge.sGetRungTheta(iRingIndex, iRungIndex, bIsTopTheta);
+        var bottomTheta = Wedge.sGetRungTheta(iRingIndex, iRungIndex, !bIsTopTheta);
+        // left wedge
+        context.arc( Wedge.vOrigin.x, Wedge.vOrigin.y, leftRadius, bottomTheta, topTheta, !bClockwise)
+
+        // right wedge, implicitly connects top of two arcs
+        context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, rightRadius, topTheta, bottomTheta, bClockwise);
+
+        // explicitly connects bottom of two arcs
+        context.closePath();
+        
+        // fill
+        //context.fillStyle="white";
+        //context.fill();
+
+         // Set line stroke props
+        context.strokeStyle = "#00ff00";
+        context.lineWidth   = 5;
         context.stroke();
     }
 
-function protoDrawWedge(canvas)
-{
-var context=canvas.getContext("2d");
 
-var vTopleft = drawBigWedge(context);
-
-     drawWedgeTile(context, 0, 0); // leftmost wedge
-        //drawWedgeTile(context, 1, 2); // bottomright wedge
-
-// --- Text --- 
-var text = "Rob"
-var radius = 100;
-context.fillStyle = "black"; // font color to write the text with
-  var font = "bold " + radius +"px serif";
-  context.font = font;
-  context.textBaseline = "top";
-  //context.fillText(text, vTopleft.x, vTopleft.y);
-
-// --- Rotated text ---
-var labelXposition = 200;
-
-context.save();
-          // TODO check this link out for one way to wrap text more pleasingly for the right-side arcs: http://jsfiddle.net/4n5pA/3/
-
-         // use the two lines below to transform the text render origin!
-//context.translate(newx, newy);
-//context.rotate(Math.PI/20);
-context.textAlign = "left"; // or "center"
-// context.fillText("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum", labelXposition, 0);
-context.restore();
-}
-
-    function clearColour(canvas, colour)
+    function clearColour(colour)
     {
-        var context = canvas.getContext("2d");
         context.fillStyle = colour;
         context.fillRect(0,0,canvas.width, canvas.height);
     }
 
-    function main() {
-/* old rotagon code 
-        var canvas = document.getElementById("lesson03-canvas");
-        initGL(canvas);
-        initShaders()
-        initBuffers();
+    function demoFullMenuWithHighlight()
+    {
+        drawWedgeTile(1, 2);
 
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.enable(gl.DEPTH_TEST);
+        var indices = [[0], [0,1,2], [0,0,2,2]];
 
-        tick();*/
+        $.each(indices, function(index, value) {
+          $.each(value, function(index2, value2) {
+            drawWedgeTile(index, value2);
+          });
+        });
 
-var canvas = document.getElementById("canvas");
+        drawWedgeTileHighlight(1, 2);
 
-    
-        clearColour(canvas, "#000000");
-protoDrawWedge(canvas);
+        // --- Text --- 
+        var text = "Rob"
+        var radius = 100;
+        context.fillStyle = "black"; // font color to write the text with
+        var font = "bold " + radius +"px serif";
+        context.font = font;
+        context.textBaseline = "top";
+        //context.fillText(text, Wedge.vTopleft.x, Wedge.vTopleft.y); // TODO vTopLeft
 
-/*
-1 - scale up the wedge
-2 - functionalize drawing wedges (iRingIndex, iVerticalIndex)
-3 - the drawWedge returns the textarea that can be used within it?
-4 - text in wedges?
-5 - anim wedge spinning
-*/
+        // --- Rotated text ---
+        var labelXposition = 200;
+
+        context.save();
+        // TODO check this link out for one way to wrap text more pleasingly for the right-side arcs: http://jsfiddle.net/4n5pA/3/
+
+        // use the two lines below to transform the text render origin!
+        //context.translate(newx, newy);
+        //context.rotate(Math.PI/20);
+        context.textAlign = "left"; // or "center"
+        // context.fillText("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum", labelXposition, 0);
+        context.restore();
+    }
+
+    var canvas;
+    var context;
+    function main() 
+    {
+        // Look at the git history if you wanna see the old Rotagon code...
+
+        canvas = document.getElementById("canvas");
+        context = canvas.getContext("2d");
+
+        initWedge();
+        clearColour("#000000");
+
+        // TODO make this a selectable drop list or something for visualizing
+        var optionFromGuiTODO = 1;
+        switch(optionFromGuiTODO)
+        {
+            case 0:
+                demoFullMenuWithHighlight();
+                break;
+            case 1:
+                demoWedgeAnimation();
+                break;
+        }
+
+        /* --- TODO / BRAINSTORM --- 
+        3 - the drawWedge returns the textarea that can be used within it?
+        4 - text in wedges?
+        5 - //anim wedge spinning
+            - we arent spinning the rings anymore, just the cutting out of the background thing. which i think would be sweet if done well.
+        6 - animations
+            - im a sucker. i wanna do the wedge burn-in anim
+
+        New Plan!
+        - bundle up the full screen and highlight thing as a neat little demo
+        - make a switch: demo the full layout on one setting, demo the weld-in effect in another setting
+        - make a testbed to write the animation, to start the burning in
+        - make a testbed for the particle effect
+
+
+        thoughts:
+        this is proly gonna look like cheesy flash bullshit in the beginning. but the end result can take advantage of the fact that this is html5/canvas.
+        - id thought of animating the cutting out of the wedge:
+            - black bg, black text sitting on it invisibly
+            - start lerping the drawline and drawarcs to draw out the white wedge, reveals text
+            - kinda funky, but still a little flash-like
+        - what if we did like a torch burning the wedge out? and we could actually simulate little velocities and accels for the sparks and flares. could be fun. 
+            - maybe get translucent B/W particles to draw.
+             ~branch - experimental torch particles! greyscale and highlight colours? animated? particle system, random vel/accel/timeToLive/colour?
+                - fire and sparks: http://www.youtube.com/watch?v=8Kv7P4cfWqw
+                - slowmo spark spawning - need to animate the burst spawn parameters of the spawner http://www.youtube.com/watch?v=01XCpVhj_Wc
+                - what if the sparks bounced off the bottom of the wedge if they hadn't bounced into it yet? could be a neat little touch, like the particles
+                  sparks bouncing off the guys garage floor. lil particle simulator, basic newtonian motion and a single bounce to give the wedge some depth? cool.
+        - when im done, it would be cool to use my git history to watch how the site evolved :D
+        */
     }
 
 
@@ -475,7 +411,7 @@ protoDrawWedge(canvas);
 </head>
 
 <body onload="main();">
-    <canvas id="canvas" style="border: 1px solid;" width="1600" height="900"></canvas>
+    <canvas id="canvas" style="border: 1px solid; background: black" width="1600" height="900"></canvas>
 </body>
 
 </html>
