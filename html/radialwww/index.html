@@ -40,14 +40,13 @@
     {
         var _vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
         var _sSideMargin = .03;
-        var _sHalfThetaRads =  Math.PI/12.2;
+        var _sHalfThetaRads =  Math.PI/14;
 
         // THE BIG DECISION, TODO ROB
         // making margins by divergence this way will always look awkward and withthe gaps between cells increasing.
         // to avoid this, maybe we change entirely: instead, draw the margin on top with black. then, the margin will have uniform thickness.
         // BUT its hacky and will take sneaking to look right. 
         // BRANCH IDEA but leave it how it is for prototyping the animation n stuff
-        var _sCellMargin = .00; // setting this > 0 kinda works but i might try a fixed pixel margin, this one gets big
         var _sCellMarginFixedHorz = 10;
         var _sCellMarginFixedVert = .0086;
 
@@ -61,7 +60,7 @@
             sGetRingRadius : function (iRingIndex, bIsLeftRadius)
             {
                 iRingIndex += bIsLeftRadius ? 0 : 1;
-                var blend = (iRingIndex/nRings) + (_sCellMargin * (bIsLeftRadius ? 1 : -1)); // + _sCellMargin * bIsLeftRadius ? 1 : -1;
+                var blend = (iRingIndex/nRings) + (_sCellMargin * (bIsLeftRadius ? 1 : -1));
                 return lerp(Wedge.sArcRadiusLeft, Wedge.sArcRadiusRight, blend) + _sCellMarginFixedHorz * (bIsLeftRadius ? 1 : -1);
             },
             sGetRungTheta : function (iRingIndex, iRungIndex, bIsTopTheta)
@@ -69,6 +68,15 @@
                 iRungIndex += bIsTopTheta ? 0 : 1;
                 var blend = (iRungIndex / nRungsPerRing[iRingIndex]) + (_sCellMargin * (bIsTopTheta ? 1 : -1));
                 return lerp(-Wedge.sHalfThetaRads, Wedge.sHalfThetaRads, blend) + _sCellMarginFixedVert * (bIsTopTheta ? 1 : -1);
+            },
+            vGetPoint : function(theta, radius)
+            {
+            	// TODO ROB i must get a vector class in this project before effing with particle systems. this function i even dont like
+            	return {
+            		x : Wedge.vOrigin.x + Math.cos(theta) * radius, 
+            		y : Wedge.vOrigin.y + Math.sin(theta) * radius
+            	};
+            	
             }
         };
     }
@@ -76,18 +84,23 @@
     // time is the animation parameter, for now anyways. TODO figure out animation system for how far along rendering the wedge we are.
     // maybe we should do a deltatime and bResetWedge params? and then based on deltatime, can animate hw much of the wedge to draw this tick around.
 
+    // these animprops track how far along the welding anim is
+    // the welding anim is a burning torch point moving from top left to top right (todo sparks flying, bouncing off invisible bottom line?)
+    // then running down the arc on the right side while the arc fills in with white (or fades in while filling up?)
     var AnimProps;  
     function initAnimProps()
     {
         AnimProps =
         {
             // main tunable(s)
-            timePerSide : [1500,2000,2000,2000], // how long the "bead" takes to reach the end of this side, millisecs
+            timeTopSide : 3000, // how long it takes the top to "burn" in the anim. TODO make this a curve? can just evaluate a function.
+            timeRightSide : 1000, // how long it takes the right arc side to "burn"
+            timeTotal : 0,
 
             // transient(s)
-            currSideIndex : 0, // (0: left arc, 3: botline, clockwise) - helper for the animation switch ? todo rob might remove
             time : 0
         };
+        AnimProps.timeTotal = AnimProps.timeTopSide + AnimProps.timeRightSide;
     }
 
     function tickDrawBigWedge(deltatime)
@@ -96,10 +109,11 @@
 
         // so how do we parameterize drawing the wedge?
         /*
-            left arc animates in,
-            top line animates in sparking, the sparks will bounce off the bottom line once which will give illusion of wedge
-            right arc animates in
-            bot line animates in, maybe the welding point can burn red at this point or something.
+            - top arc torches in from the left (todo sparks flying?), and then down the bottom right along the arc
+			- the wedge animates in along with the right side?
+				- try the wedge anim first
+
+what if the back wall just fell away when the torch burned it off?
 
             so we need an animation timeline. think curves.
             time to draw each of the four sides
@@ -108,85 +122,60 @@
             currProgress : 0;
         */
 
-        context.beginPath();
+        var timeRemaining = AnimProps.time;
 
         // this is a const param for canvas arc drawing
         var bClockwise = false;
-
-        // AnimProps.time is how far along in total the anim is, this struct helps us break down that time and draw each wedge side
-        var localAnimProps = 
-        {
-        	timeRemaining : AnimProps.time, 
-        	sideIndex : 0,
-        	blendRatio : 0
-        };
-
-        // call this function once per side until it returns false (which means the anim is done, draw no more sides)
-        function updateLocalAnimProps(localAnimProps)
-        {
-        	if (localAnimProps.timeRemaining <= 0)
-        	{
-        		// nothing left to draw, out of anim!
-        		return false;
-        	}
-
-        	if (localAnimProps.timeRemaining >= AnimProps.timePerSide[localAnimProps.sideIndex])
-        	{
-        		// this side is done drawing, no blend
-        		localAnimProps.blendRatio = 1;
-        	}
-        	else 
-        	{
-        		// this side is not yet done drawing, blend
-        		localAnimProps.blendRatio = localAnimProps.timeRemaining / AnimProps.timePerSide[localAnimProps.sideIndex];
-        	}
-
-        	localAnimProps.timeRemaining -= AnimProps.timePerSide[localAnimProps.sideIndex];
-        	localAnimProps.sideIndex++;
-
-        	return true;
-        }
 
         // alternative anim: can we just lerp the burning out of the top line, and then the two arcs? we were thinking about having the other
         // tiles burn in similarly, then we can fill the whole thing up with the two arcs adn only lerp the one param. the sparks could look damn good doing that too
 
         // how abot this: the light burns out the top bar only, and then burns down the two arcs. the sparks can still come out as the tracer burns the sides.
         // as the arcs fill in from top to bottom, so does the white background.
-        // the important part is that as the sparks start at the top, they should bounce off the bottoms of the wedges, but just ones. this will suggest the line
-        // without drawing it until the end. could be cool, but tricky. collision in particle system.
+        // the important part is that as the sparks start at the top, they should bounce off the bottoms of the wedges, but just once. this will suggest the line
+        // without drawing it until the end. could be cool, but tricky. collision in particle system?
 
-        // loop: call updateLocalAnimProps to get the blend ratio (i.e. the ratio of the current side to draw, in 0..1),
-        // function returns false if this side of the wedge should not be drawn (i.e. its too early)
-        var bStillAnimating = true;
+        var blendRatio;
+        var topTheta;
+        var botTheta;
+        var botLeft;
 
-        bStillAnimating &= updateLocalAnimProps(localAnimProps);
-        if (bStillAnimating)
-        {
-        	// left wedge TODO interpolate, gotta use the blend param here and lerp
-        	var topTheta = lerp(Wedge.sHalfThetaRads, -Wedge.sHalfThetaRads, localAnimProps.blendRatio);
+        context.beginPath();
 
-       		context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusLeft, Wedge.sHalfThetaRads,topTheta, !bClockwise)
-        }
-        
-        bStillAnimating &= updateLocalAnimProps(localAnimProps);
-        if (bStillAnimating)
-        {
-        	// god damnit, i have to actually do the top manually now. shiit.
-        	// right wedge, implicitly connects top of two arcs
-        	context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusRight, -Wedge.sHalfThetaRads,Wedge.sHalfThetaRads, bClockwise);
-        }
+	        // first im gonna try just filling in the full wedge
+	        // todo rob rename timeRightSide to timeFillIn?
+	        blendRatio = timeRemaining >= AnimProps.timeRightSide ? 1.0 : timeRemaining / AnimProps.timeRightSide;   
+	        topTheta = -Wedge.sHalfThetaRads;
+	        botTheta = lerp(topTheta, -topTheta, blendRatio);
+	        botLeft = Wedge.vGetPoint(botTheta, Wedge.sArcRadiusLeft);
 
-		// explicitly connects bottom of two arcs
-        context.closePath();
+	        timeRemaining -= AnimProps.timeRightSide;
+	        
+	     	// draw the wedge thus far
+	     	// left side, bottom to top
+	       	context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusLeft, botTheta, topTheta, !bClockwise);
+
+	       	// right side, top to bottom, implicitly connects top
+	       	context.arc(Wedge.vOrigin.x, Wedge.vOrigin.y, Wedge.sArcRadiusRight, topTheta, botTheta, bClockwise);
+
+	       	// explicitely connect bottom
+	    	//context.lineTo(botLeft.x, botLeft.y);
 		
         context.closePath();
-        context.fillStyle="white";
+
+
+        // this fillstyle is temporary, have to think of a better way to bring in the background colour
+        var alpha = Math.pow(blendRatio, 3.3); // drag out the opacity blending in
+
+        // todo rob? this fillStyle can link to an img too if i context.createPattern(imgElem,"tileString")
+        context.fillStyle= "rgba(255,255,255,"+alpha+")";
         context.fill();
 
          // Set line stroke props
-        context.strokeStyle = "#ff0000";
+        context.strokeStyle = "#BB0000";
+        context.lineJoin = 'miterLine';
         context.lineWidth   = 5;
-        context.stroke();
+        //context.stroke();
     }
 
     
