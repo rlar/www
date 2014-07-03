@@ -10,6 +10,8 @@ define(['math'], function(math)
     var _sCellMarginFixedHorz = 10;
     var _sCellMarginFixedVert = .0086;
 
+    var vec = new math.Vector(1,2);
+
     return {
         nRings: _nRings,
         nRungsPerRing: _nRungsPerRing, 
@@ -33,12 +35,10 @@ define(['math'], function(math)
         },
         vGetPoint: function(theta, radius)
         {
-            // TODO ROB i must get a vector class in this project before effing with particle systems. this function i even dont like
-            var point = {
-                x : (Wedge.vOrigin.x + Math.cos(theta) * radius), 
-                y : (Wedge.vOrigin.y + Math.sin(theta) * radius)
-            };
-            return point;
+            var x = (Wedge.vOrigin.x + Math.cos(theta) * radius);
+            var y = (Wedge.vOrigin.y + Math.sin(theta) * radius);
+
+            return math.Vector(x, y);;
         }
     }
 /*
