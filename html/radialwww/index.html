@@ -41,12 +41,7 @@
         var _vOrigin = { x : -.175 * canvas.width , y : canvas.height / 2 }
         var _sSideMargin = .03;
         var _sHalfThetaRads =  Math.PI/14;
-
-        // THE BIG DECISION, TODO ROB
-        // making margins by divergence this way will always look awkward and withthe gaps between cells increasing.
-        // to avoid this, maybe we change entirely: instead, draw the margin on top with black. then, the margin will have uniform thickness.
-        // BUT its hacky and will take sneaking to look right. 
-        // BRANCH IDEA but leave it how it is for prototyping the animation n stuff
+		var _sCellMargin = 0;
         var _sCellMarginFixedHorz = 10;
         var _sCellMarginFixedVert = .0086;
 
@@ -81,11 +76,10 @@
         };
     }
 
-    // time is the animation parameter, for now anyways. TODO figure out animation system for how far along rendering the wedge we are.
-    // maybe we should do a deltatime and bResetWedge params? and then based on deltatime, can animate hw much of the wedge to draw this tick around.
+
 
     // these animprops track how far along the welding anim is
-    // the welding anim is a burning torch point moving from top left to top right (todo sparks flying, bouncing off invisible bottom line?)
+    // the welding anim is a burning torch point moving from top left to top right
     // then running down the arc on the right side while the arc fills in with white (or fades in while filling up?)
     var AnimProps;  
     function initAnimProps()
@@ -130,10 +124,6 @@ what if the back wall just fell away when the torch burned it off?
         // alternative anim: can we just lerp the burning out of the top line, and then the two arcs? we were thinking about having the other
         // tiles burn in similarly, then we can fill the whole thing up with the two arcs adn only lerp the one param. the sparks could look damn good doing that too
 
-        // how abot this: the light burns out the top bar only, and then burns down the two arcs. the sparks can still come out as the tracer burns the sides.
-        // as the arcs fill in from top to bottom, so does the white background.
-        // the important part is that as the sparks start at the top, they should bounce off the bottoms of the wedges, but just once. this will suggest the line
-        // without drawing it until the end. could be cool, but tricky. collision in particle system?
 
         var blendRatio;
         var topTheta;
@@ -168,7 +158,7 @@ what if the back wall just fell away when the torch burned it off?
         var alpha = Math.pow(blendRatio, 3.3); // drag out the opacity blending in
 
         // todo rob? this fillStyle can link to an img too if i context.createPattern(imgElem,"tileString")
-        context.fillStyle= "rgba(255,255,255,"+alpha+")";
+        context.fillStyle= "rgba(255, 255, 255, " + alpha + ")";
         context.fill();
 
          // Set line stroke props
@@ -289,7 +279,7 @@ what if the back wall just fell away when the torch burned it off?
         //context.fill();
 
          // Set line stroke props
-        context.strokeStyle = "#00ff00";
+        context.strokeStyle = "#FF6600";
         context.lineWidth   = 5;
         context.stroke();
     }
@@ -350,8 +340,28 @@ what if the back wall just fell away when the torch burned it off?
         initWedge();
         clearColour("#000000");
 
+
+        var o = {
+		  a: 2,
+		  m: function(b){
+		    return this.a + 1;
+		  }
+		};
+
+		console.log(o.m()); // 3
+		// When calling o.m in this case, 'this' refers to o
+
+		var p = Object.create(o);
+		// p is an object that inherits from o
+
+		p.a = 12; // creates an own property 'a' on p
+		console.log(p.m()); // 13
+		// when p.m is called, 'this' refers to p.
+		// So when p inherits the function m of o, 'this.a' means p.a, the own property 'a' of p
+
+
         // TODO make this a selectable drop list or something for visualizing
-        var optionFromGuiTODO = 1;
+        var optionFromGuiTODO = 0;
         switch(optionFromGuiTODO)
         {
             case 0:
@@ -392,6 +402,36 @@ what if the back wall just fell away when the torch burned it off?
                   sparks bouncing off the guys garage floor. lil particle simulator, basic newtonian motion and a single bounce to give the wedge some depth? cool.
         - when im done, it would be cool to use my git history to watch how the site evolved :D
         */
+
+        /* ALL PLONS FOR ZE ANIM - collected for your enjoyment
+
+		Anim Ideas
+		- best idea so far for the torch is along the top and right, and we fade in the wedge somehow
+			- but the fade in looks shitty. 
+		- maybe we can just simulate a block falling inwards after being cut out?
+			- just draw a dark occluder on top of the white wedge, colour anims from dark to white, the top right corner falling in to the left
+			- the torch could run up the left side for this version
+
+		- sparks particle system!
+			- spawn where the torch is tracing atm
+			- source vids in comments
+			- the sparks can bounce off the bottom ledge once maybe? given a new velocity based on impact, give it a sparky feel
+			- super stretch goal: ambient lighting on name?
+				- each particle renders a light circle on the black background, then we render the name in black, then re-blacken outside the wedge
+				- this could be super expensive, can optimize by grouping light contribution to a few key points and rendering circles there?
+		
+		this is a neat idea but only really works on the big wedge:
+		- more torch points maybe?
+			- a torch burns down each of the outsides, two or on the top (from the middle out? or alternating directions?)
+			- this would give better lighting for the name if we do that
+			- this would be faster than animating along the whole top of the big wedge
+
+
+		TODO
+		- we should figure out a better animation system than random timers and lerps
+		- this should include curves of some description - even some simple trig and polynom ones?
+
+    	*/
     }
 
 
