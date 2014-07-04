@@ -12,10 +12,18 @@ requirejs.config({
 });
 
 // Start the main app logic.
-requirejs(['jquery', /*'canvas',*/ 'app/sub', 'app/wedge', 'math'],
-function   ($,        /*canvas, */  sub, wedge, math) {
+requirejs(['jquery', /*'canvas',*/ 'app/sub', 'app/wedge', 'math', 'app/draw'],
+function   ($,        /*canvas, */  sub, wedge, math, draw) {
     //jQuery, canvas and the app/sub module are all
     //loaded and can be used here now.
-	alert("loaded");
-	alert(sub.color);
+	//alert("loaded");
+	//alert(sub.color);
+    var indices = [[0], [0,1,2], [0,1,2,3]];
+
+    $.each(indices, function(index, value) {
+      $.each(value, function(index2, value2) {
+        draw.drawWedgeTile(index, value2);
+      });
+    });
+
 });

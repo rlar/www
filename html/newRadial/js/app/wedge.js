@@ -9,6 +9,8 @@ define(['math'], function(math)
     var _sCellMargin = 0;
     var _sCellMarginFixedHorz = 10;
     var _sCellMarginFixedVert = .0086;
+    var _sArcRadiusLeft = -_vOrigin.x + canvas.width * _sSideMargin;
+    var _sArcRadiusRight = -_vOrigin.x + canvas.width * (1-_sSideMargin);
 
     var vec = new math.Vector(1,2);
 
@@ -19,24 +21,24 @@ define(['math'], function(math)
         vOrigin: _vOrigin,
         sSideMargin: _sSideMargin,
         sHalfThetaRads: _sHalfThetaRads,
-        sArcRadiusLeft: -_vOrigin.x + canvas.width * _sSideMargin, 
-        sArcRadiusRight: -_vOrigin.x + canvas.width * (1-_sSideMargin),
+        sArcRadiusLeft: _sArcRadiusLeft, 
+        sArcRadiusRight: _sArcRadiusRight,
         sGetRingRadius: function (iRingIndex, bIsLeftRadius)
         {
             iRingIndex += bIsLeftRadius ? 0 : 1;
-            var blend = (iRingIndex/nRings) + (_sCellMargin * (bIsLeftRadius ? 1 : -1));
-            return lerp(Wedge.sArcRadiusLeft, Wedge.sArcRadiusRight, blend) + _sCellMarginFixedHorz * (bIsLeftRadius ? 1 : -1);
+            var blend = (iRingIndex/_nRings) + (_sCellMargin * (bIsLeftRadius ? 1 : -1));
+            return math.lerp(_sArcRadiusLeft, _sArcRadiusRight, blend) + _sCellMarginFixedHorz * (bIsLeftRadius ? 1 : -1);
         },
         sGetRungTheta: function (iRingIndex, iRungIndex, bIsTopTheta)
         {
             iRungIndex += bIsTopTheta ? 0 : 1;
-            var blend = (iRungIndex / nRungsPerRing[iRingIndex]) + (_sCellMargin * (bIsTopTheta ? 1 : -1));
-            return lerp(-Wedge.sHalfThetaRads, Wedge.sHalfThetaRads, blend) + _sCellMarginFixedVert * (bIsTopTheta ? 1 : -1);
+            var blend = (iRungIndex / _nRungsPerRing[iRingIndex]) + (_sCellMargin * (bIsTopTheta ? 1 : -1));
+            return math.lerp(-_sHalfThetaRads, _sHalfThetaRads, blend) + _sCellMarginFixedVert * (bIsTopTheta ? 1 : -1);
         },
         vGetPoint: function(theta, radius)
         {
-            var x = (Wedge.vOrigin.x + Math.cos(theta) * radius);
-            var y = (Wedge.vOrigin.y + Math.sin(theta) * radius);
+            var x = (_vOrigin.x + Math.cos(theta) * radius);
+            var y = (_vOrigin.y + Math.sin(theta) * radius);
 
             return math.Vector(x, y);;
         }
